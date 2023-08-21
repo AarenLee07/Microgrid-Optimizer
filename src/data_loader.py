@@ -405,7 +405,7 @@ class XGB_dataloader(DataLoader):
         2. use a combined file (xlsx), with sheet names 
             "load" (with cols "bld" & "PV")
         """
-        # only load of bld and ev available here
+        # only load of bld and pv available here
         self.data_tmp = {   # tmp: short for "temporary"
             "load_bld": None, # a pd.Series
             "load_pv": None, # a pd.Series

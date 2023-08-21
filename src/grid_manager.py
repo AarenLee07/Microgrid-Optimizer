@@ -188,28 +188,70 @@ class MPC_op():
          
     # [LunLong 2023/08/20] merge load_data() and init_historical_data() as one      
     # tstart_historical_data, tstart_execution_data, tend # ! should share the same end 
+    '''
     def load_data(self, loader=UCSD_dataloader, **kw):
         # [Yi, 2023/03/13] force to fill na
         
         loaded = loader(fillna=True, **kw)
         self.data = loaded.get_data()
-    
-    def init_historical_data(self, loader=UCSD_dataloader, 
+    '''
+    def load_data(self, loader=UCSD_dataloader, 
                              tstart_historical=datetime(2018,1,1,0,0),
                              tstart_execution=datetime(2019,1,1,0,0),
                              tend=datetime(2019,12,31,23,59),**kw):
-        # [Yi, 2023/03/13] force to fill na
+        # check feasibility of input time
+        assert tstart_historical<=tstart_execution
+        assert tstart_execution<tend
         
+        # load prediction ref, including load_bld, load_pv and ev_sessions
+        kw["tstart"]=tstart_historical
+        kw["tend"]=tstart_execution
+        loaded_pred_ref = loader(fillna=True, **kw).get_data()
+        
+        # load GT, including load_bld, load_pv and ev_sessions
+        kw["tstart"]=tstart_execution
+        kw["tend"]=tend
+        loaded_GT = loader(fillna=True, **kw).get_data()
+        self.data=loaded_GT.copy() # ground_truth for all cases as the ref of execution
+        
+        # init a tmp dict for the prediction dict
+        loaded_pred=loaded_GT.copy()
+        
+        # common part for all pred_models  
+        for key in ["load_bld","load_pv"]:
+            assert (key in list(loaded_pred_ref.keys()) and key in list(loaded_pred.keys()))
+            # concat two part of the load
+            load_tmp=pd.concat([loaded_pred[key],loaded_pred_ref[key]],axis=0)
+            # sort by timeindex
+            load_tmp=load_tmp.sort_index()
+            # drop duplicates based on timeindex, however only few values may be duplicated 
+            #   due to the overlap on the boundary 
+            load_tmp = load_tmp[~load_tmp.index.duplicated(keep='first')]
+            loaded_pred[key]=load_tmp.copy()
+        
+        # load XGB static data into a saperate table
         if kw["pred_model"]=="Prediction":
-            loaded=XGB_dataloader(fillna=True, **kw)
-            self.data_pool_xgb = DataPool(loaded.get_data())
-            loaded = loader(fillna=True, **kw)
-            self.data_pool = DataPool(loaded.get_data())
-            
-        else:
-            
-            loaded = loader(fillna=True, **kw)
-            self.data_pool = DataPool(loaded.get_data())
+            kw["tstart"]=tstart_execution
+            kw["tend"]=tend
+            load_XGB=XGB_dataloader(fillna=True, **kw).get_data() # load_XGB contains only load_bld and load_pv
+            loaded_XGB=loaded_pred.copy()
+            # copy from the static data directly
+            for key in ["load_bld","load_pv"]:
+                assert key in list(load_XGB.keys())
+                loaded_XGB[key]=load_XGB[key].copy()
+            self.data_pool_xgb = DataPool(loaded_XGB.copy()) 
+                
+        # all pred_models share the same set of ev_sessions
+        if kw["ev"] is not None:
+            assert ("ev_sessions" in list(loaded_pred_ref.keys()) and "ev_sessions" in list(loaded_pred.keys()))
+            ev_tmp=loaded_pred_ref["ev_sessions"].copy()
+            count_ev=len(loaded_pred["ev_sessions"])
+            ev_tmp.index=ev_tmp.index+count_ev
+            ev_tmp_to_sort=pd.concat([loaded_pred["ev_sessions"],ev_tmp],axis=0)
+            ev_tmp_sorted=ev_tmp_to_sort.sort_values(by="ta")
+            loaded_pred["ev_sessions"]=ev_tmp_sorted
+
+        self.data_pool = DataPool(loaded_pred.copy()) 
         
 
     def init_battery(self, model=Battery_base, **kw):
@@ -278,12 +320,14 @@ class MPC_op():
 
     def init_predictor(self, **kw):
         # [Yi, 2023/03/08] modify predictor def
+        
         if kw["shortcut"]=="Prediction":
             assert self.data_pool_xgb is not None
             self.predictor = Predictor(data_pool=self.data_pool,
                                        data_pool_xgb=self.data_pool_xgb, **kw)
         else:
             self.predictor = Predictor(data_pool=self.data_pool, **kw)
+
 
     """ the following methods should be treated as PRIVATE methods
         i.e., don't call them directly outside
