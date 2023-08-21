@@ -57,12 +57,12 @@ op_params_sample = {"K": 96,
             "ev_charge_rule_default": "unif",
             "p_grid_max": "1.5",}
 
-exp_suffix = "Aug2023_debug"
+exp_suffix = "Aug2023_2"
 exp_folder = os.path.join(out_path, "experiments", exp_suffix)
 debug_folder = os.path.join(out_path, "debug_test")
 assert os.path.exists(exp_folder)
-log_fn = os.path.join(exp_folder, "debug_oneday_12months_validation.xlsx")#_oneday_12months
-save_path = os.path.join(exp_folder, "MPC-debug")
+log_fn = os.path.join(exp_folder, "LOG-MPC-MSC-6h-bat-Apr-Jun.xlsx")#_oneday_12months
+save_path = os.path.join(exp_folder, "MPC-demo-1")
 
 
 
@@ -119,9 +119,13 @@ class MPC_ExperimentManager(ExperimentManager):
 
         # Step 1: load data
         mpc.load_data(loader=UCSD_dataloader, 
-            tstart=datetime(2019,1,1,0,0), tend=datetime(2019,12,31,23,59), delta=0.25,
-            bld=bld, pv=pv, ev=ev, pv_to_bld=0.5, ev_to_bld=0.25, Pmax=10)
+            tstart_historical=datetime(2018,1,1,0,0),
+            tstart_execution=datetime(2019,1,1,0,0),
+            tend=datetime(2019,12,31,23,59), delta=0.25,
+            bld=bld, pv=pv, ev=ev, pv_to_bld=0.5, ev_to_bld=0.25, Pmax=10,
+            pred_model=pred_model)
 
+        '''
         # Step 2: Load historical data
         # ! add pred_model here
         if pred_model=="GT":
@@ -132,6 +136,7 @@ class MPC_ExperimentManager(ExperimentManager):
             mpc.init_historical_data(loader=UCSD_dataloader,
                 tstart=datetime(2018,11,30,0,0), tend=datetime(2019,12,31,23,59), delta=0.25,
                 bld=bld, pv=pv, ev=ev, pv_to_bld=0.5, ev_to_bld=0.25, Pmax=10, pred_model=pred_model)
+        '''
 
         # Step 3: specify other operational params
         optimizer_params = {"strategy": strategy, "language":"gurobi"}
