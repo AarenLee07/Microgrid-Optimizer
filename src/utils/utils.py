@@ -1,6 +1,8 @@
 import os
 import sys
 import numpy as np
+import pandas as pd
+import itertools
 
 # fix: reference before statement : data_path
 #data_path = sys.path[0].replace("notebooks", "data")
@@ -98,3 +100,14 @@ def quick_stats(x, percentiles=(5,25,50,75,95), prob=None, key_prefix = None):
                 stats[key_prefix+"pct_{}".format(percentiles[i])] = pct[i]
         
         return stats
+    
+def generate_exp_table(params_dic,save_path):
+    
+    # Get all possible combinations
+    combinations = list(itertools.product(*params_dic.values()))
+    # Convert to DataFrame
+    df = pd.DataFrame(combinations, columns=params_dic.keys())
+    df.index.name='id'
+    df.to_excel(save_path, index=True)
+    
+    return df

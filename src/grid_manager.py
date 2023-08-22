@@ -75,6 +75,13 @@ class MPC_op():
                       "EV_onsite": self.ev_log.onsite_table.copy(),
                       "EV_log": self.ev_log.logging.copy(),
                       "curr_sol":None}
+    
+        # [Lunlong, 2023/08/21] add params to log the latest pred_error
+        self.latest_max_bld_error_neg=0
+        self.latest_max_bld_error_pos=0
+        self.latest_max_pv_error_neg=0
+        self.latest_max_pv_error_pos=0
+
 
     """ the following methods are PUBLIC methods
         i.e., you can call them directly outside    
@@ -99,7 +106,8 @@ class MPC_op():
             index = pd.date_range(tstart, tend, freq="{}H".format(self.delta_0)),
             columns = ["p_grid", "bat_p", "bat_e", "ev_p", "ev_I", 
                         "load_bld", "load_pv", "tou_import", "tou_export",
-                        "opex", "solve_time","latest_p_grid_max"],
+                        "opex", "solve_time","latest_p_grid_max",
+                        "load_bld_error","load_pv_error"],
         )
 
 
@@ -139,7 +147,7 @@ class MPC_op():
                 op_log_curr = self.op_log.dropna()
                 if len(op_log_curr) > 0:
                     self.op_summary(op_log_curr)
-                '''    
+                ''''
                 if len(op_log_curr) > 0 and t == tstart:
                     self.summary_one_step=op_summary_one_step_temp
                     print("summary saved at:",t)
@@ -449,8 +457,8 @@ class MPC_op():
             #print("t:",t," range(K):",range(K))
             #print("self.pred_action_log\[\"load_pv\"\].loc[t, range(K)]:",list(self.pred_action_log["load_pv"].loc[t, range(K)]))
             #print("params\[\"load_pv\"\]: ",list(params["load_pv"].values))
-            self.pred_action_log["load_bld"].loc[t, range(K)] = params["load_bld"][0]
-            self.pred_action_log["load_pv"].loc[t, range(K)] = params["load_pv"][0]
+            self.pred_action_log["load_bld"].loc[t, range(K)] = params["load_bld"].values
+            self.pred_action_log["load_pv"].loc[t, range(K)] = params["load_pv"].values
             self.pred_action_log["p_grid"].loc[t, range(K)] = sol["p_grid"][0]
             self.pred_action_log["bat_p"].loc[t, range(K)] = sol["bat_p"][0]
             self.pred_action_log["ev_p"].loc[t, range(K)] = sol["ev_p"][0].sum(axis=0)
@@ -483,6 +491,17 @@ class MPC_op():
             sol_ev_p=0
             for i in sol["ev_p"][0]:
                 sol_ev_p+=i[0]
+                
+            # calculate pred_error of current step
+            
+            self.latest_max_bld_error_neg=min(pred["load_bld"][exe_t]-load_bld,
+                                            self.latest_max_bld_error_neg,0)
+            self.latest_max_bld_error_pos=max(pred["load_bld"][exe_t]-load_bld,
+                                            self.latest_max_bld_error_pos,0)
+            self.latest_max_pv_error_neg=min(pred["load_pv"][exe_t]-load_pv,
+                                            self.latest_max_pv_error_neg,0)
+            self.latest_max_pv_error_pos=max(pred["load_pv"][exe_t]-load_pv,
+                                            self.latest_max_pv_error_pos,0)
             
             '''
             if not np.isclose(p_grid,sol["p_grid"][0][k],rtol=0.1,atol=0.1):
@@ -510,7 +529,8 @@ class MPC_op():
             
             # update historical data pool
             
-            """  # [Yi, 2023/03/04] 
+            """  
+            # [Yi, 2023/03/04] 
             # FIXME: the data_pool needs to be better designed
             #   now, always load all (incl. future) data at the beginning,
             #   and never call data_pool.update
@@ -524,7 +544,6 @@ class MPC_op():
             #   since all data has been loaded at the beginning
             """
 
-
             # record operations in op_log (incl. correct p_grid)
             self.op_log.loc[exe_t] = {
                 "p_grid": p_grid, "bat_p": bat_p, "bat_e": bat_e,
@@ -532,7 +551,9 @@ class MPC_op():
                 "load_bld": load_bld, "load_pv": load_pv,
                 "tou_import": price_buy, "tou_export": price_sell,
                 "opex": opex, "solve_time": t_last / exe_K,
-                "latest_p_grid_max": max(self.op_log["p_grid"])
+                "latest_p_grid_max": max(self.op_log["p_grid"]),
+                "load_bld_error": pred["load_bld"].loc[exe_t]-load_bld,
+                "load_pv_error": pred["load_pv"].loc[exe_t]-load_pv
             }
             
         
@@ -847,7 +868,11 @@ class MPC_op():
                  "import_cost": "$/day",
                  "export_revenue": "$/day",
                  "bat_e_terminal": "kWh",
-                 "bat_e_terminal_revenue": "$"
+                 "bat_e_terminal_revenue": "$",
+                 "load_bld_error_max_neg": "kW",
+                 "load_bld_error_max_pos": "kW",
+                 "load_pv_error_max_neg": "kW",
+                 "load_pv_error_max_pos": "kW",
                  }
 
         df = pd.DataFrame(index=index, columns=columns.keys())
@@ -947,7 +972,12 @@ class MPC_op():
 
         df.loc["All", "eq_rate"] = df.loc["All", "TCO"] / df.loc["All", "load_tot"]
         df.loc["All", "eq_rate_est"] = df.loc["All", "TCO_est"] / df.loc["All", "load_tot"]
-
+        
+        df.loc["All","load_bld_error_max_neg"]= self.latest_max_bld_error_neg
+        df.loc["All","load_bld_error_max_pos"]= self.latest_max_bld_error_pos
+        df.loc["All","load_pv_error_max_neg"]= self.latest_max_pv_error_neg
+        df.loc["All","load_pv_error_max_pos"]= self.latest_max_pv_error_pos
+        
         self.summary = df.T
         return df
         

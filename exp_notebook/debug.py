@@ -61,7 +61,7 @@ exp_suffix = "Aug2023_2"
 exp_folder = os.path.join(out_path, "experiments", exp_suffix)
 debug_folder = os.path.join(out_path, "debug_test")
 assert os.path.exists(exp_folder)
-log_fn = os.path.join(exp_folder, "LOG-MPC-MSC-6h-bat-Jul-Sep.xlsx")#_oneday_12months
+log_fn = os.path.join(exp_folder, "disturbance_sensitive.xlsx")#_oneday_12months
 save_path = os.path.join(exp_folder, "MPC-demo-1")
 
 
@@ -89,6 +89,8 @@ class MPC_ExperimentManager(ExperimentManager):
         op_params["penalty_coef"]=params.get("penalty_coef", 0)
         op_params["sol_save_steps"] = params.get("sol_save_steps",0)
         op_params["dc_formulation"]=params.get("dc_formulation", "moving")
+        op_params["disturbance_rule"]=params.get("disturbance_rule", "uniform")
+        op_params["disturbance_scale"]=params.get("disturbance_scale", 0.03)
         op_params["p_grid_max"] = None if p_grid_max is None else str(p_grid_max)
         pred_model = params.get("pred_model", "GT") 
         
@@ -108,13 +110,12 @@ class MPC_ExperimentManager(ExperimentManager):
             raise Exception("Building related params are not prepoperly initiated")
 
         def convert_time(s):
-            s_l=s.split("-")
-            
-            month, day ,hour, minute=int(s_l[0]),int(s_l[1]) ,int(s_l[2]) ,int(s_l[3]) 
-            return datetime(2019, month, day, hour, minute)
-        t_start = convert_time(params.get("start", "10-1-0-0"))
-        t_end = convert_time(params.get("end", "10-8-0-0"))
-
+            idx_hyphen = s.index("-")
+            month, day = int(s[:idx_hyphen]), int(s[idx_hyphen+1:])
+            return datetime(2019, month, day, 0, 0)
+        t_start = convert_time(params.get("start", "10-1"))
+        t_end = convert_time(params.get("end", "10-8"))
+        
         mpc = MPC_op()
 
         # Step 1: load data
@@ -148,7 +149,15 @@ class MPC_ExperimentManager(ExperimentManager):
 
         # Step 5: initialize predictor
         # [Yi, 2023/03/08] modify predictor def
-        mpc.init_predictor(shortcut=pred_model)
+        if pred_model=="Disturbance":
+            bld_kws={
+                "rule":op_params["disturbance_rule"],
+                "loc":0,
+                "scale":op_params["disturbance_scale"],
+            }
+            mpc.init_predictor(shortcut=pred_model, bld_kws=bld_kws)
+        else:
+            mpc.init_predictor(shortcut=pred_model, bld_kws=None)
 
         # Step 6: initialize save_config
         mpc.init_save_config(save_fn=save_fn[:-5],  # FIXME: remove ".xlsx"
@@ -171,7 +180,6 @@ var_keys = [
             "B_kWh",  "deg_model", 
             "start", "end", 
             "bld", "ev", "pv",
-            "dc_formulation","penalty_coef",
-            "sol_save_steps"]
-em.run(keys=var_keys, num_trials=5)
+            "disturbance_scale","disturbance_rule"]
+em.run(keys=var_keys, num_trials=1)
 

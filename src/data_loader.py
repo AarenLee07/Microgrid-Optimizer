@@ -433,3 +433,18 @@ class XGB_dataloader(DataLoader):
             df_load.index = pd.to_datetime(df_load.index) # remove '''infer_datetime_format=True'''
             self.data_tmp["load_bld"] = pd.Series(df_load["bld"], copy=True)
             self.data_tmp["load_pv"] = pd.Series(df_load["PV"], copy=True)
+
+
+import itertools
+
+class Exp_table():
+    def __init__(self,params_dic,save_path):
+        # Get all possible combinations
+        combinations = list(itertools.product(*params_dic.values()))
+        # Convert to DataFrame
+        df = pd.DataFrame(combinations, columns=params_dic.keys())
+        df.to_excel(save_path, index=True)
+        self.df=df
+        
+    def get_table(self):
+        return self.df

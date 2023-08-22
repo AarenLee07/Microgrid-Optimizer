@@ -39,8 +39,9 @@ class Predictor():
         self.data_pool_xgb = data_pool_xgb
         
         self.set_predictor(shortcut=shortcut,
-                 bld=None, pv=None, ev=None, price_buy=None, price_sell=None,
-                 bld_kws=None, pv_kws=None, ev_kws=None, price_buy_kws=None, price_sell_kws=None)
+                 bld=bld, pv=pv, ev=ev, price_buy=price_buy, price_sell=price_sell,
+                 bld_kws=bld_kws, pv_kws=pv_kws, ev_kws=ev_kws, 
+                 price_buy_kws=price_buy_kws, price_sell_kws=price_sell_kws)
         
  
     def get_prediction(self, t, K, delta):
@@ -54,7 +55,8 @@ class Predictor():
         return pred
 
 
-    def set_predictor(self, shortcut, **predictors):
+    def set_predictor(self, shortcut, bld=None, pv=None, ev=None, price_buy=None, price_sell=None,
+                 bld_kws=None, pv_kws=None, ev_kws=None, price_buy_kws=None, price_sell_kws=None,**predictors):
 
         predictor_tmp = predictors
 
@@ -94,15 +96,12 @@ class Predictor():
                 "price_sell": None, "price_sell_kws": None
                 },
             "Disturbance":{
-                "bld": Predictor_load_Noise, "bld_kws":{},#"bld": Predictor_load_GT, "bld_kws": None
+                "bld": Predictor_load_Noise, "bld_kws":bld_kws,#"bld": Predictor_load_GT, "bld_kws": None
                 "pv": Predictor_load_GT, "pv_kws": None, #  Predictor_load_Simple, "pv_kws": {"rule": "day", "num": 3, "exp_alpha": 0.1},
                 "ev": Predictor_ev_GT, "ev_kws": None,
                 "price_buy": Predictor_tou_SDGE_DA, "price_buy_kws": None,
                 "price_sell": None, "price_sell_kws": None
-                },
-                
-    
-                
+                },      
         }
 
 
@@ -152,6 +151,45 @@ class Predictor_load_GT(Load_Predictor):
         pred = self.data_pool.data[f"load_{self.load_type}"].loc[t:t+timedelta(hours=(K-1)*delta)]
         #print("get load prediction gt method called")
         # FIXME: align pred index with delta?
+        return pred
+    
+    
+# [Lunlong, 2023/08/21] add predictor of random noise
+class Predictor_load_Noise(Predictor_load_GT):
+    def __init__(self, data_pool, load_type, rule, **rule_kws):
+        super().__init__(data_pool, load_type)
+        self.rule = rule    # suggest: bld: "week"; pv: "day"
+        self.loc = rule_kws.get("loc", 0.0)   # suggest: 0
+        self.scale = rule_kws.get("scale", 0.03)    # suggest: 0.03
+
+    def get_prediction(self, t, K, delta):
+        
+        if self.rule not in ["normal","uniform","uniform_pos","uniform_neg"]:
+            raise Exception("Noise generating rule not implemented: ",self.rule)
+        
+        pred_ref=self.data_pool.data[f"load_{self.load_type}"].loc[t:t+timedelta(hours=(K-1)*delta)]
+        assert len(pred_ref) == K
+        
+        if self.rule == "normal":
+            coef=np.random.normal(loc=self.loc, scale=self.scale, size=len(pred_ref))
+            pred=pred_ref*coef+pred_ref
+        
+        elif self.rule == "uniform":
+            coef=np.random.uniform(low=self.scale*(-2), high=self.scale*2, size=len(pred_ref))
+            pred=pred_ref*coef+pred_ref
+            
+        elif self.rule == "uniform_pos":
+            coef=np.random.uniform(low=0, high=self.scale*2, size=len(pred_ref))
+            pred=pred_ref*coef+pred_ref
+            
+        elif self.rule == "uniform_neg":
+            coef=np.random.uniform(low=self.scale*(-2), high=0, size=len(pred_ref))
+            pred=pred_ref*coef+pred_ref
+        
+        
+        coef_mean=np.mean(coef)
+        coef_mean_abs=np.mean(abs(coef))
+        
         return pred
 
 
