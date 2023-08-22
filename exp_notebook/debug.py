@@ -61,7 +61,7 @@ exp_suffix = "Aug2023_2"
 exp_folder = os.path.join(out_path, "experiments", exp_suffix)
 debug_folder = os.path.join(out_path, "debug_test")
 assert os.path.exists(exp_folder)
-log_fn = os.path.join(exp_folder, "LOG-MPC-MSC-6h-bat-Apr-Jun.xlsx")#_oneday_12months
+log_fn = os.path.join(exp_folder, "LOG-MPC-MSC-6h-bat-Jul-Sep.xlsx")#_oneday_12months
 save_path = os.path.join(exp_folder, "MPC-demo-1")
 
 
@@ -173,5 +173,5 @@ var_keys = [
             "bld", "ev", "pv",
             "dc_formulation","penalty_coef",
             "sol_save_steps"]
-em.run(keys=var_keys, num_trials=1)
+em.run(keys=var_keys, num_trials=5)
 

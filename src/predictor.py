@@ -68,7 +68,7 @@ class Predictor():
                 "price_sell": None, "price_sell_kws": None
                 },
             "Simple": {
-                "bld": Predictor_load_Simple, "bld_kws": {"rule": "week", "num": 4, "exp_alpha": 0.1},
+                "bld": Predictor_load_Simple, "bld_kws": {"rule": "week", "num": 4, "exp_alpha": 0.1},#"bld": Predictor_load_GT, "bld_kws": None,
                 "pv": Predictor_load_GT, "pv_kws": None,# Predictor_load_Simple, "pv_kws": {"rule": "day", "num": 3, "exp_alpha": 0.1},
                 "ev": Predictor_ev_GT, "ev_kws": None,
                 #"ev": Predictor_ev_Simple, "ev_kws": {"rule": "week", "num": 1},
@@ -77,7 +77,7 @@ class Predictor():
                 },
             # all naive as the lower bound
             "Naive": {
-                "bld": Predictor_load_Simple, "bld_kws": {"rule": "naive"},
+                "bld": Predictor_load_Simple, "bld_kws": {"rule": "naive"},#"bld": Predictor_load_GT, "bld_kws": None,
                 "pv": Predictor_load_GT, "pv_kws": None, # Predictor_load_Simple, "pv_kws": {"rule": "naive"},
                 "ev": Predictor_ev_GT, "ev_kws": None, # Predictor_ev_Simple, "ev_kws": {"rule": "naive"},
                 "price_buy": Predictor_tou_SDGE_DA, "price_buy_kws": None,
@@ -87,13 +87,21 @@ class Predictor():
             # add the implementation of XGBoost prediction
             # "pv": Predictor_load_XGBoost, "pv_kws": {"xgb_prediction_path":'D:/Codes/GIthub_repo/Energy_grid/data/load_forecast/XGB/PV_sum_XGBoost_prediction.csv'},
             "Prediction":{ 
-                # the file path work only on local environment
-                "bld": Predictor_load_XGBoost, "bld_kws":{"data_pool_xgb":self.data_pool_xgb},
+                "bld": Predictor_load_XGBoost, "bld_kws":{"data_pool_xgb":self.data_pool_xgb},#"bld": Predictor_load_GT, "bld_kws": None
                 "pv": Predictor_load_GT, "pv_kws": None, #  Predictor_load_Simple, "pv_kws": {"rule": "day", "num": 3, "exp_alpha": 0.1},
                 "ev": Predictor_ev_GT, "ev_kws": None,
                 "price_buy": Predictor_tou_SDGE_DA, "price_buy_kws": None,
                 "price_sell": None, "price_sell_kws": None
                 },
+            "Disturbance":{
+                "bld": Predictor_load_Noise, "bld_kws":{},#"bld": Predictor_load_GT, "bld_kws": None
+                "pv": Predictor_load_GT, "pv_kws": None, #  Predictor_load_Simple, "pv_kws": {"rule": "day", "num": 3, "exp_alpha": 0.1},
+                "ev": Predictor_ev_GT, "ev_kws": None,
+                "price_buy": Predictor_tou_SDGE_DA, "price_buy_kws": None,
+                "price_sell": None, "price_sell_kws": None
+                },
+                
+    
                 
         }
 
