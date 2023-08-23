@@ -567,8 +567,8 @@ class MPC_op():
             bat_p_max=min(bat_capacity/params["bat_p_max"],bat_e_curr/delta_0)*bat_efficacy # pos means discharging
             bat_p_min=max(-bat_capacity/params["bat_p_min"],-(bat_capacity-bat_e_curr)/delta_0)/bat_efficacy # neg means charging
         
-            if abs(mismatch)>=0.01:
-                print("mismatch: ",mismatch)
+            # if abs(mismatch)>=0.01:
+            #    print("mismatch: ",mismatch)
             if mismatch>=0: # need to check the bat_p_max and bat_p_min here
                 bat_p=min(bat_p+mismatch, bat_p_max)
             # mismatch<0 means less power needed than in solution
@@ -613,13 +613,13 @@ class MPC_op():
             
             
             # calculate pred_error of current step
-            self.latest_max_bld_error_neg=min(pred["load_bld"][exe_t]-load_bld,
+            self.latest_max_bld_error_neg=min(load_bld-pred["load_bld"][exe_t],
                                             self.latest_max_bld_error_neg,0)
-            self.latest_max_bld_error_pos=max(pred["load_bld"][exe_t]-load_bld,
+            self.latest_max_bld_error_pos=max(load_bld-pred["load_bld"][exe_t],
                                             self.latest_max_bld_error_pos,0)
-            self.latest_max_pv_error_neg=min(pred["load_pv"][exe_t]-load_pv,
+            self.latest_max_pv_error_neg=min(load_pv-pred["load_pv"][exe_t],
                                             self.latest_max_pv_error_neg,0)
-            self.latest_max_pv_error_pos=max(pred["load_pv"][exe_t]-load_pv,
+            self.latest_max_pv_error_pos=max(load_pv-pred["load_pv"][exe_t],
                                             self.latest_max_pv_error_pos,0)
             
             '''
