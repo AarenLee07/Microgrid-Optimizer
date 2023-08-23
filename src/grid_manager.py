@@ -457,8 +457,25 @@ class MPC_op():
             #print("t:",t," range(K):",range(K))
             #print("self.pred_action_log\[\"load_pv\"\].loc[t, range(K)]:",list(self.pred_action_log["load_pv"].loc[t, range(K)]))
             #print("params\[\"load_pv\"\]: ",list(params["load_pv"].values))
-            self.pred_action_log["load_bld"].loc[t, range(K)] = params["load_bld"].values
-            self.pred_action_log["load_pv"].loc[t, range(K)] = params["load_pv"].values
+            # [Lunlong 2023/08/23] add type check for load data,
+            #   since both np.ndarray and Series occurred
+            if isinstance(params["load_bld"],pd.Series):
+                self.pred_action_log["load_bld"].loc[t, range(K)] = params["load_bld"].values
+            elif isinstance(params["load_bld"],np.ndarray):
+                self.pred_action_log["load_bld"].loc[t, range(K)] = params["load_bld"][0]
+                raise Warning("params[\"load_bld\"] type error",type(params["load_bld"]))
+            else:
+                raise Exception("params[\"load_bld\"] type error",type(params["load_bld"]))
+            
+            if isinstance(params["load_pv"],pd.Series):
+                self.pred_action_log["load_pv"].loc[t, range(K)] = params["load_pv"].values
+            elif isinstance(params["load_pv"],np.ndarray):
+                self.pred_action_log["load_pv"].loc[t, range(K)] = params["load_pv"][0]
+                raise Exception("params[\"load_pv\"] type error",type(params["load_pv"]))
+            else:
+                raise Exception("params[\"load_pv\"] type error",type(params["load_pv"]))
+            
+            #self.pred_action_log["load_pv"].loc[t, range(K)] = params["load_pv"].values
             self.pred_action_log["p_grid"].loc[t, range(K)] = sol["p_grid"][0]
             self.pred_action_log["bat_p"].loc[t, range(K)] = sol["bat_p"][0]
             self.pred_action_log["ev_p"].loc[t, range(K)] = sol["ev_p"][0].sum(axis=0)
@@ -535,6 +552,9 @@ class MPC_op():
             mismatch_ev=ev_p_sum-sol_ev_p
             assert abs(mismatch_ev)<=0.01 # currently, ev_pred are all gt, shouldnt mismatch
             
+            exe_t = t + timedelta(hours=self.delta_0*k)
+            load_pv = self.data["load_pv"].loc[exe_t]
+            load_bld = self.data["load_bld"].loc[exe_t]
             mismatch_bld=load_bld-pred["load_bld"][exe_t]
             mismatch_pv=load_pv-pred["load_pv"][exe_t]
             
@@ -542,8 +562,10 @@ class MPC_op():
             mismatch=mismatch_bld+mismatch_pv+mismatch_ev
             
             bat_p = sol["bat_p"][0][k] # get bat_p solution
-            bat_p_max=params["bat_p_max"] # pos means discharging
-            bat_p_min=params["bat_p_min"] # neg means charging
+            bat_capacity=params["bat_capacity"]
+            bat_efficacy=params["bat_efficacy"]
+            bat_p_max=min(bat_capacity/params["bat_p_max"],bat_e_curr/delta_0)*bat_efficacy # pos means discharging
+            bat_p_min=max(-bat_capacity/params["bat_p_min"],-(bat_capacity-bat_e_curr)/delta_0)/bat_efficacy # neg means charging
             
             
             if mismatch>=0: # need to check the bat_p_max and bat_p_min here

@@ -303,8 +303,11 @@ class Predictor_load_Simple(Predictor_load_GT):
         data = self.data_pool.data[f"load_{self.load_type}"]
         last = data.loc[t_prev]   # load at last step
         
+        # [Lunlong 2023/08/23] fix a bug, when rule==naive, return a series rather than ndarray
         if self.rule == "naive":
-            pred = np.array([last] * K)
+            idx = pd.date_range(t, t+timedelta(hours=K*delta), freq=f"{delta}H", inclusive="left")
+            idx = idx - idx.floor(freq="D")
+            pred = pd.Series(last, index=idx)
         else:
             ts = find_dates(t, K, delta, self.rule, self.num)
             ts = data.index.intersection(ts)
@@ -315,6 +318,7 @@ class Predictor_load_Simple(Predictor_load_GT):
                 pred = pred_ref.groupby(pred_ref.index - pred_ref.index.floor(freq="D")).agg(np.nanmean)
                 idx = pd.date_range(t, t+timedelta(hours=K*delta), freq=f"{delta}H", inclusive="left")
                 idx = idx - idx.floor(freq="D")
+                last = 1
                 pred = pred.loc[idx].values
 
                 alpha = self.exp_alpha
