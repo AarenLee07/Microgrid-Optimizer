@@ -57,12 +57,7 @@ op_params_sample = {"K": 96,
             "ev_charge_rule_default": "unif",
             "p_grid_max": "1.5",}
 
-exp_suffix = "Aug2023_2"
-exp_folder = os.path.join(out_path, "experiments", exp_suffix)
-debug_folder = os.path.join(out_path, "debug_test")
-assert os.path.exists(exp_folder)
-log_fn = os.path.join(exp_folder, "disturbance_sensitive.xlsx")#_oneday_12months
-save_path = os.path.join(exp_folder, "MPC-demo-1")
+
 
 
 
@@ -70,6 +65,8 @@ class MPC_ExperimentManager(ExperimentManager):
     """
     Main variable: battery size (normalized to hr: to bld_load)
     """
+
+        
     def run_one_trial(self, params, save_fn):
         
         # params: keys: "pred_model", "strategy", "B_kWh", "deg_model_opt", "deg_model", 
@@ -170,16 +167,4 @@ class MPC_ExperimentManager(ExperimentManager):
         stats = dict(mpc.summary["All"])
         
         return stats
-
-em = MPC_ExperimentManager(log_fn=log_fn, save_path=save_path, save=True, exp_prefix="MPC")
-var_keys = [
-            "method", "strategy",
-            "pred_model", "deg_model_opt", "p_grid_max", 
-            "price_dc", "price_sell", 
-            "ev_charge_rule", 
-            "B_kWh",  "deg_model", 
-            "start", "end", 
-            "bld", "ev", "pv",
-            "disturbance_scale","disturbance_rule"]
-em.run(keys=var_keys, num_trials=1)
 

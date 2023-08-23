@@ -304,9 +304,10 @@ class Predictor_load_Simple(Predictor_load_GT):
         last = data.loc[t_prev]   # load at last step
         
         # [Lunlong 2023/08/23] fix a bug, when rule==naive, return a series rather than ndarray
+        #                      same bug when not naive
         if self.rule == "naive":
             idx = pd.date_range(t, t+timedelta(hours=K*delta), freq=f"{delta}H", inclusive="left")
-            idx = idx - idx.floor(freq="D")
+            #idx = idx - idx.floor(freq="D")
             pred = pd.Series(last, index=idx)
         else:
             ts = find_dates(t, K, delta, self.rule, self.num)
@@ -316,14 +317,13 @@ class Predictor_load_Simple(Predictor_load_GT):
             else:
                 pred_ref = data.loc[ts]
                 pred = pred_ref.groupby(pred_ref.index - pred_ref.index.floor(freq="D")).agg(np.nanmean)
-                idx = pd.date_range(t, t+timedelta(hours=K*delta), freq=f"{delta}H", inclusive="left")
-                idx = idx - idx.floor(freq="D")
-                last = 1
+                idx_ori = pd.date_range(t, t+timedelta(hours=K*delta), freq=f"{delta}H", inclusive="left")
+                idx = idx_ori - idx_ori.floor(freq="D")
                 pred = pred.loc[idx].values
-
                 alpha = self.exp_alpha
                 last_weights = np.exp(- alpha*(np.arange(K)+1)) if alpha is not None else 0
-                pred = last_weights * last + (1-last_weights) * pred
+                pred_values = last_weights * last + (1-last_weights) * pred              
+                pred = pd.Series(pred_values, index=idx_ori)
         
         assert len(pred) == K
         

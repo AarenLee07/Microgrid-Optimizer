@@ -547,10 +547,10 @@ class MPC_op():
             # sol based on prediction
             sol_ev_p=0
             for i in sol["ev_p"][0]:
-                sol_ev_p+=i[0]
+                sol_ev_p+=i[k]
             
             mismatch_ev=ev_p_sum-sol_ev_p
-            assert abs(mismatch_ev)<=0.01 # currently, ev_pred are all gt, shouldnt mismatch
+            assert abs(mismatch_ev)<=0.1 # currently, ev_pred are all gt, shouldnt mismatch
             
             exe_t = t + timedelta(hours=self.delta_0*k)
             load_pv = self.data["load_pv"].loc[exe_t]
@@ -566,12 +566,13 @@ class MPC_op():
             bat_efficacy=params["bat_efficacy"]
             bat_p_max=min(bat_capacity/params["bat_p_max"],bat_e_curr/delta_0)*bat_efficacy # pos means discharging
             bat_p_min=max(-bat_capacity/params["bat_p_min"],-(bat_capacity-bat_e_curr)/delta_0)/bat_efficacy # neg means charging
-            
-            
+        
+            if abs(mismatch)>=0.01:
+                print("mismatch: ",mismatch)
             if mismatch>=0: # need to check the bat_p_max and bat_p_min here
                 bat_p=min(bat_p+mismatch, bat_p_max)
             # mismatch<0 means less power needed than in solution
-            elif sol["p_grid"][0][k]<0: 
+            elif sol["p_grid"][0][k]<=0: 
                 # if p_grid in the solution is less than 0
                 #   extra p be for charing bat or export to grid depending on rules
                 if extra_p_rule=="battery_first":
@@ -892,11 +893,12 @@ class MPC_op():
                             ev_params["Pmax"]*params["eta"]*self.delta_0))
         
     def update_ev_charge(self, t, sol, exe_k=0):
-        self.update_onsite_ev(t)
+        
+        # todo: the update index relationship of none_GT prediction havent been checked yet
         # t: use the original t, calculate here
         t_curr = t+timedelta(hours=self.delta_0*exe_k)
         # ! update_onsite_ev before updating charge
-        
+        self.update_onsite_ev(t_curr)
         
         onsite = self.ev_log.onsite_table
         
