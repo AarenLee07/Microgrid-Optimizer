@@ -469,6 +469,8 @@ class MPC_op():
         for k in range(exe_K):
             # execute exe_K stpes
             
+            '''old way of execution start'''
+            '''
             # update battery charge
             #   when battery has more complicated dynamics, soc_update rule may be different
             bat_p = sol["bat_p"][0][k]
@@ -487,13 +489,107 @@ class MPC_op():
             load_bld = self.data["load_bld"].loc[exe_t]
 
             p_grid = load_bld - load_pv + ev_p_sum - bat_p
+            # bat_p neg means charging, pos means discharging
             
             sol_ev_p=0
             for i in sol["ev_p"][0]:
                 sol_ev_p+=i[0]
-                
-            # calculate pred_error of current step
+            '''
+            '''old way of execution end'''
             
+            
+            # [Lunlong 2023/08/23]    
+            # ! make an assumption that:
+            # * The suboptimal of MPC under all kinds of prediction is caused by
+            # *     the error of load prediction, specifically, the negative error (load_pred<load_truth),
+            # *     which always makes the executed p_grid higher than the that of the solution.    
+            # todo: So that the following changes should be made
+            # * When p_grid in solution is lower that needed in the execution:
+            # *     take extra power from the battery without violating the constraints
+            # * Need to consider different cases:
+            # *     A. bld_error+pv_error<0
+            # *         first supply extra power from the battery then from the grid
+            # *     B. bld_error+pv_error>0
+            # *         if p_grid in the solution is above 0:
+            # *             give it back to grid to lower p_grid in execution
+            # *         else:
+            # *             rule1 "battery_first": to charge battery first then export to grid
+            # *             rule2 "to_grid": to export to grid
+            # *             # unimplemented: rule3 "price_based": depending on the import price 
+            # todo: How to decide charge battery of export to grid when scenerio A occurs
+            
+            # ! Such method may cause new bugs since the current exe_K=4
+            
+            extra_p_rule="battery_first"
+            
+            # update ev charge
+            # exceuted value
+            ev_p = self.update_ev_charge(t, sol=sol, exe_k=k)
+            # [Yi, 2023/02/11]: add ev_I to track
+            ev_p_sum, ev_I = np.sum(ev_p), len(ev_p)
+            # sol based on prediction
+            sol_ev_p=0
+            for i in sol["ev_p"][0]:
+                sol_ev_p+=i[0]
+            
+            mismatch_ev=ev_p_sum-sol_ev_p
+            assert abs(mismatch_ev)<=0.01 # currently, ev_pred are all gt, shouldnt mismatch
+            
+            mismatch_bld=load_bld-pred["load_bld"][exe_t]
+            mismatch_pv=load_pv-pred["load_pv"][exe_t]
+            
+            # mismatch pos means need more power from bat and grid
+            mismatch=mismatch_bld+mismatch_pv+mismatch_ev
+            
+            bat_p = sol["bat_p"][0][k] # get bat_p solution
+            bat_p_max=params["bat_p_max"] # pos means discharging
+            bat_p_min=params["bat_p_min"] # neg means charging
+            
+            
+            if mismatch>=0: # need to check the bat_p_max and bat_p_min here
+                bat_p=min(bat_p+mismatch, bat_p_max)
+            # mismatch<0 means less power needed than in solution
+            elif sol["p_grid"][0][k]<0: 
+                # if p_grid in the solution is less than 0
+                #   extra p be for charing bat or export to grid depending on rules
+                if extra_p_rule=="battery_first":
+                    bat_p=max(bat_p+mismatch, bat_p_min)
+                elif extra_p_rule=="to_grid":
+                    pass
+                elif extra_p_rule=="price_based":
+                    raise Warning("extra_p_rule unimplemented:",extra_p_rule)
+            else:
+                # if p_grid in the solution is above 0, give it back, lower it down
+                print("p_grid in solution is higher than execution")
+                # if more surplus after giving back to the grid
+                if abs(mismatch)>sol["p_grid"][0][k]:
+                    if extra_p_rule=="battery_first":
+                        mismatch_inner=mismatch+sol["p_grid"][0][k]
+                        bat_p=max(bat_p+mismatch_inner, bat_p_min)
+                    elif extra_p_rule=="to_grid":
+                        pass
+                    elif extra_p_rule=="price_based":
+                        raise Warning("extra_p_rule unimplemented:",extra_p_rule)
+                else:
+                    pass
+                    
+            
+            # update battery charge
+            #   when battery has more complicated dynamics, soc_update rule may be different    
+            #bat_p=bat_p+bat_p_extra
+            self.battery.update_soc(p = bat_p, delta=delta_0)
+            self.battery_est.update_soc(p = bat_p, delta=delta_0)
+            bat_e = self.battery.get_states("e_curr")
+            
+            # update p_grid
+            exe_t = t + timedelta(hours=self.delta_0*k)
+            load_pv = self.data["load_pv"].loc[exe_t]
+            load_bld = self.data["load_bld"].loc[exe_t]
+            
+            p_grid = load_bld - load_pv + ev_p_sum - bat_p
+            
+            
+            # calculate pred_error of current step
             self.latest_max_bld_error_neg=min(pred["load_bld"][exe_t]-load_bld,
                                             self.latest_max_bld_error_neg,0)
             self.latest_max_bld_error_pos=max(pred["load_bld"][exe_t]-load_bld,
@@ -513,7 +609,6 @@ class MPC_op():
                         "bat_p:",str(bat_p))
             '''
             
-                
 
             price_buy = params["energy_price_buy"][k]
             # FIXME: this can have many problems, e.g., 
