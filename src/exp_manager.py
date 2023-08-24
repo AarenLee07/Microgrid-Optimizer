@@ -46,7 +46,7 @@ class ExperimentManager():
             # STEP 1: find the next experiment to run
             # [Lunlong 2023/08/01] Modified for paralel threading, avoid accessing contradiction
             tw=0
-            while tw<8:
+            while tw<20:
                 if is_used(self.log_fn):
                     if(tw%1==0):
                         print("Access denied, suspending.")
@@ -83,7 +83,7 @@ class ExperimentManager():
                 log.loc[trial_idx, "save_fn"] = save_fn
             # [Lunlong 2023/08/01] Modified for paralel threading, avoid accessing contradiction
             tw=0
-            while tw<8:
+            while tw<20:
                 if is_used(self.log_fn):
                     if(tw%1==0):
                         print("Access denied, suspending.")
@@ -103,7 +103,7 @@ class ExperimentManager():
 
             # [Lunlong 2023/08/01] Modified for paralel threading, avoid accessing contradiction
             tw=0
-            while tw<8:
+            while tw<20:
                 if is_used(self.log_fn):
                     if(tw%1==0):
                         print("Access denied, suspending.")
@@ -123,7 +123,7 @@ class ExperimentManager():
                 log.loc[trial_idx, k] = stats[k]
             # [Lunlong 2023/08/01] Modified for paralel threading, avoid accessing contradiction
             tw=0
-            while tw<8:
+            while tw<20:
                 if is_used(self.log_fn):
                     if(tw%1==0):
                         print("Access denied, suspending.")
