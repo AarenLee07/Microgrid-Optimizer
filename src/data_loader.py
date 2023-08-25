@@ -328,7 +328,7 @@ def ev_data_loader(proj="UCSD", folder="UCSD_raw_data",
     df.sort_values(by="ta", inplace=True, ignore_index=True)
     
     # ! for index debugging
-    df.to_csv("ev_step_1_evdataloader.csv", index=True)
+    # df.to_csv("ev_step_1_evdataloader.csv", index=True)
 
     return df
 

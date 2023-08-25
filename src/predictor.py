@@ -172,6 +172,9 @@ class Predictor_load_Noise(Predictor_load_GT):
         
         if self.rule == "normal":
             coef=np.random.normal(loc=self.loc, scale=self.scale, size=len(pred_ref))
+            absolute_average = np.mean(np.abs(coef))
+            adjustment_factor = self.scale / absolute_average
+            coef=coef*adjustment_factor
             pred=pred_ref*coef+pred_ref
         
         elif self.rule == "uniform":
