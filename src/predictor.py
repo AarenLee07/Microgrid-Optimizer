@@ -170,11 +170,17 @@ class Predictor_load_Noise(Predictor_load_GT):
         pred_ref=self.data_pool.data[f"load_{self.load_type}"].loc[t:t+timedelta(hours=(K-1)*delta)]
         assert len(pred_ref) == K
         
+        if self.scale>0.5:
+            raise Warning("self.scale higher than 0.5, may lead to infasiblility")
+        
         if self.rule == "normal":
-            coef=np.random.normal(loc=self.loc, scale=self.scale, size=len(pred_ref))
+            # make most of the coef constrainted within [-1,1] by keep scale=1/3 
+            coef=np.random.normal(loc=self.loc, scale=1/3, size=len(pred_ref))
             absolute_average = np.mean(np.abs(coef))
             adjustment_factor = self.scale / absolute_average
             coef=coef*adjustment_factor
+            # cut down coef exceeding the range
+            np.clip(coef,-1,1)
             pred=pred_ref*coef+pred_ref
         
         elif self.rule == "uniform":
