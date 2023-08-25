@@ -176,7 +176,7 @@ def plot_valid(df,relative,limit,figsize,save_fn,key,fontsize):
         
     plt.show()
     
-def plot_origin_valid_bar(df,relative,limit,figsize,key,save_fn,fontsize):
+def plot_origin_valid_bar(df,relative,limit,figsize,key,save_fn,fontsize,notes_y=-40):
     if relative:
         new_key='relative_'+key
     else:
@@ -206,8 +206,14 @@ def plot_origin_valid_bar(df,relative,limit,figsize,key,save_fn,fontsize):
         'MSC-GT':'_',
         'MSC-Naive':'_'
     }
+    
+    
 
     fig,ax=plt.subplots(figsize=figsize)
+    
+    plt.grid(axis = 'x',linestyle='--',alpha=0.1)
+    plt.grid(axis = 'y',linestyle='--',alpha=0.8)
+    
     scatter_x=np.array(df['week_of_year'])
     scatter_y=np.array(df[new_key])
 
@@ -250,24 +256,20 @@ def plot_origin_valid_bar(df,relative,limit,figsize,key,save_fn,fontsize):
         
     
     ax.set_xlabel("Weeks in the year of 2019",fontsize=fontsize*1.5)
-    ax.set_ylabel("Relative "*relative+key+" (Percentage)"*relative,fontsize=fontsize*1.5)
+    ax.set_ylabel("Relative "*relative+key+" (Percentage)"*relative+"(US dollar/day)"*(not relative),fontsize=fontsize*1.5)
 
     ax.set_title("Relative "*relative+key+" of Different Models",fontsize=fontsize*1.5)
     if relative:
         ax.text(s="Notes: 1. "+key+" under MPC-GT is marked as lower bound while MSC_GT marked as upper bound.",
-                fontsize=fontsize*1.2,
-                x=0,
-                y=-40
+                fontsize=fontsize*1.2, x=0, y=notes_y
                 )
-    #ax.grid(True)
-    plt.grid(axis = 'x',linestyle='--',alpha=0.1)
-    plt.grid(axis = 'y',linestyle='--',alpha=0.8)
-    plt.tight_layout()
-    plt.savefig(save_fn)
-    plt.show()
     
-    #if save_fn is not None:
-    #    plt.savefig(save_fn)
+    plt.tight_layout()
+    
+    if save_fn is not None:
+        plt.savefig(save_fn)
+    plt.show()
+
         
 def pre_process_dc_line(df):
     df=df.rename(columns={"grid_max":"mpc_grid_max", "OPEX":"mpc_opex","tou_cost":"mpc_tou_cost"})
@@ -319,4 +321,33 @@ def plot_dc_line_group(df,plot_key_list_x,plot_key_list_y,x_key,suptitle,base_si
     plt.tight_layout()
     
     #plt.figsize([base_size[0]*len(plot_key_list_x),base_size[1]*len(plot_key_list_y)])
+    plt.show()
+
+def plot_box(df,relative,limit,figsize,key,save_fn,fontsize):
+
+    labels=df['label'].unique()
+    to_delete=np.array(['MPC-GT','MSC-GT'],dtype=object)
+    labels_set=set(labels)
+    to_delete_set=set(to_delete)
+    labels=labels_set-to_delete_set
+    
+    if relative:
+        key="relative_"+key
+
+    boxes=[]
+    fig,ax=plt.subplots(figsize=figsize)
+    for i in labels:
+    
+        boxes.append(df[df.label==i][key])
+    
+    #box_1, box_2, box_3, box_4 = data['收入_Jay'], data['收入_JJ'], data['收入_Jolin'], data['收入_Hannah']
+    
+    #plt.figure(figsize=figsize)#设置画布的尺寸
+    plt.title('Examples of boxplot',fontsize=fontsize)#标题，并设定字号大小
+   
+    #vert=False:水平箱线图；showmeans=True：显示均值
+    ax.boxplot(boxes, labels = labels, vert=False,showmeans=True )
+    ax.set_xlim(limit)
+    if save_fn is not None:
+        plt.savefig(save_fn)
     plt.show()
