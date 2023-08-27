@@ -35,7 +35,7 @@ class DataLoader():
     """
 
     def __init__(self, tstart=None, tend=None, delta=0.25,
-                pv_to_bld=None, ev_to_bld=None, ev_rand_td=None, rand_seed=42, fillna=False,
+                pv_to_bld=None, ev_to_bld=None, ev_rand_td=None, rand_seed=42, fillna=False, bld_load_mean=None,
                 **kwargs_load_data):
         
         self.load_bld = None
@@ -51,8 +51,9 @@ class DataLoader():
         self.align_time_range(tstart=tstart, tend=tend, delta=delta, 
             ev_rand_td=ev_rand_td, rand_seed=rand_seed)
 
+        print(bld_load_mean)
         # Step 3 (optional): rescale PV harvest and/or EV load based on bld load
-        self.rescale_load(pv_to_bld=pv_to_bld, ev_to_bld=ev_to_bld, rand_seed=rand_seed)
+        self.rescale_load(pv_to_bld=pv_to_bld, ev_to_bld=ev_to_bld, rand_seed=rand_seed, bld_load_mean=bld_load_mean)
 
         # [Yi, 2023/03/19]
         # check missing values - fill them if [fillna = True]
@@ -167,12 +168,15 @@ class DataLoader():
         self.ev_sessions = df_ev.sort_values(by="ta", ignore_index=True)
         return
 
-    def rescale_load(self, pv_to_bld=None, ev_to_bld=None, rand_seed=42):
+    def rescale_load(self, pv_to_bld=None, ev_to_bld=None, rand_seed=42, bld_load_mean=None):
         
         tstart = self.load_bld.index.min()
         tend = self.load_bld.index.max()
 
-        bld_mean = self.load_bld.mean()
+        if bld_load_mean is None:
+            bld_mean = self.load_bld.mean()
+        else:
+            bld_mean = bld_load_mean
         
         pv_mean = self.load_pv.mean()
         if pv_to_bld is not None:

@@ -211,6 +211,8 @@ class MPC_op():
         assert tstart_historical<=tstart_execution
         assert tstart_execution<tend
         
+        # old method of loading data, loading data seperated of two periods
+        '''
         # load prediction ref, including load_bld, load_pv and ev_sessions
         kw["tstart"]=tstart_historical
         kw["tend"]=tstart_execution
@@ -260,6 +262,42 @@ class MPC_op():
             loaded_pred["ev_sessions"]=ev_tmp_sorted
 
         self.data_pool = DataPool(loaded_pred.copy()) 
+        '''
+        
+        
+    
+        # new method of loading data
+        
+        # get data of the full duration ["load_bld","load_pv","ev_sessions"] for gt
+        #   as well as for prediction models excluding "XGBoost"
+        kw["tstart"]=tstart_historical
+        kw["tend"]=tend
+        loaded_GT = loader(fillna=True, **kw).get_data()
+        self.data=loaded_GT.copy()
+        self.data_pool = DataPool(loaded_GT.copy()) 
+        
+        # for xgb prediction, load_bld and load_pv are loaded from static file but ev_sessions not implemented
+        #   as for load_bld, it's the benchmark of recaling other load, inconsistency of loading period in gt and pred_ref doesnt matter
+        #   while not the same story for load_pv
+        #   so that we need to calculate the average bld_load of [tstart_execution,tend] in the gt as rescaling reference
+        
+        bld_load=self.data["load_bld"]
+        execution_period=bld_load[tstart_execution:tend]
+        load_ave_exec=np.mean(execution_period,axis=0)
+        load_ave_all=np.mean(bld_load,axis=0)
+        
+        if kw["pred_model"]=="Prediction":
+            kw["tstart"]=tstart_execution
+            kw["tend"]=tend
+            load_XGB=XGB_dataloader(fillna=True, bld_load_mean=load_ave_exec, **kw).get_data() # load_XGB contains only load_bld and load_pv
+            loaded_XGB=loaded_GT.copy()
+            # copy from the static data directly
+            for key in ["load_bld","load_pv"]:
+                assert key in list(load_XGB.keys())
+                loaded_XGB[key]=load_XGB[key].copy()
+            self.data_pool_xgb = DataPool(loaded_XGB.copy()) 
+        
+        return
         
 
     def init_battery(self, model=Battery_base, **kw):
@@ -487,7 +525,7 @@ class MPC_op():
             # execute exe_K stpes
             
             '''old way of execution start'''
-            '''
+            
             # update battery charge
             #   when battery has more complicated dynamics, soc_update rule may be different
             bat_p = sol["bat_p"][0][k]
@@ -511,7 +549,7 @@ class MPC_op():
             sol_ev_p=0
             for i in sol["ev_p"][0]:
                 sol_ev_p+=i[0]
-            '''
+            
             '''old way of execution end'''
             
             
@@ -536,7 +574,10 @@ class MPC_op():
             # todo: How to decide charge battery of export to grid when scenerio A occurs
             
             # ! Such method may cause new bugs since the current exe_K=4
+            # ! THIS METHOD IS NOT PLAUSIBLE IN REAL SCENERIO
             
+            '''new way of execution start'''
+            '''
             extra_p_rule="battery_first"
             
             # update ev charge
@@ -595,21 +636,10 @@ class MPC_op():
                         raise Warning("extra_p_rule unimplemented:",extra_p_rule)
                 else:
                     pass
-                    
+            '''    
+                
+            '''new way of execution end'''   
             
-            # update battery charge
-            #   when battery has more complicated dynamics, soc_update rule may be different    
-            #bat_p=bat_p+bat_p_extra
-            self.battery.update_soc(p = bat_p, delta=delta_0)
-            self.battery_est.update_soc(p = bat_p, delta=delta_0)
-            bat_e = self.battery.get_states("e_curr")
-            
-            # update p_grid
-            exe_t = t + timedelta(hours=self.delta_0*k)
-            load_pv = self.data["load_pv"].loc[exe_t]
-            load_bld = self.data["load_bld"].loc[exe_t]
-            
-            p_grid = load_bld - load_pv + ev_p_sum - bat_p
             
             
             # calculate pred_error of current step
