@@ -175,7 +175,7 @@ class Predictor_load_Noise(Predictor_load_GT):
         
         if self.rule == "normal":
             # make most of the coef constrainted within [-1,1] by keep scale=1/3 
-            coef=np.random.normal(loc=self.loc, scale=1/3, size=len(pred_ref))
+            coef=np.random.normal(loc=self.loc, scale=self.scale, size=len(pred_ref))
             absolute_average = np.mean(np.abs(coef))
             adjustment_factor = self.scale / absolute_average
             coef=coef*adjustment_factor
