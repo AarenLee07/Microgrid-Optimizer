@@ -5,6 +5,7 @@ from matplotlib import rc
 import matplotlib as mpl
 import pandas as pd
 import sys
+from matplotlib.lines import Line2D
 
 '''
 src_path = sys.path[0].replace("figures\visualization\script", "src")
@@ -324,7 +325,7 @@ def plot_dc_line_group(df,plot_key_list_x,plot_key_list_y,x_key,suptitle,base_si
     plt.show()
 
 def plot_box(df,relative,limit,figsize,key,save_fn,fontsize):
-
+    
     labels=df['label'].unique()
     to_delete=np.array(['MPC-GT','MSC-GT'],dtype=object)
     labels_set=set(labels)
@@ -335,19 +336,33 @@ def plot_box(df,relative,limit,figsize,key,save_fn,fontsize):
         key="relative_"+key
 
     boxes=[]
-    fig,ax=plt.subplots(figsize=figsize)
+    fig,axs=plt.subplots(nrows=2,ncols=1,figsize=figsize)
     for i in labels:
-    
         boxes.append(df[df.label==i][key])
-    
-    #box_1, box_2, box_3, box_4 = data['收入_Jay'], data['收入_JJ'], data['收入_Jolin'], data['收入_Hannah']
-    
-    #plt.figure(figsize=figsize)#设置画布的尺寸
-    plt.title('Examples of boxplot',fontsize=fontsize)#标题，并设定字号大小
+
+    legend_elements = [Line2D([0], [0], color='orange', lw=1, label='median'),
+                       Line2D([], [], color='black', marker='o', linestyle='None',
+                          markersize=5, markerfacecolor='w',label='outliers')
+                   ]    
    
-    #vert=False:水平箱线图；showmeans=True：显示均值
-    ax.boxplot(boxes, labels = labels, vert=False,showmeans=True )
-    ax.set_xlim(limit)
+
+    axs[0].boxplot(boxes, labels = labels, vert=False,showmeans=False,
+               meanline=True)
+    axs[0].set_xlim(limit)
+    axs[0].set_title("Relative OPEX (percentage) of different models")
+    axs[0].legend(handles=legend_elements, loc='upper right')
+    
+    vp=axs[1].violinplot(boxes, vert=False,showmeans=False,
+                      showmedians=True)
+    vp['cmedians'].set_color('orange')
+
+    for pc in vp['bodies']:
+        pc.set_color("w")
+        pc.set_edgecolor('black')
+    axs[1].set_yticks([y + 1 for y in range(len(boxes))],
+                  labels=labels)
+    axs[1].set_xlim(limit)
+
     if save_fn is not None:
         plt.savefig(save_fn)
     plt.show()
