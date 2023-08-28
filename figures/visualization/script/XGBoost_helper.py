@@ -690,7 +690,9 @@ class Simple_forecast():
         if indexes_pred.min()-timedelta(days=max(days_list)) < self.pred_ref.index.min():
             print("Alert: insufficient data in ref_duration")
             
+        print("# calculate historical average of all index in prediction duartion")
         for i in indexes_pred:
+            #print(i)
             # calculate historical average of all index in prediction duartion   
             history=[]
             for k in days_list:
@@ -712,7 +714,7 @@ class Simple_forecast():
             idx_end=i+timedelta(minutes=15*K)
             meta=self.pred_ref[idx_start:idx_end]
             future=meta['RealPower'].values.tolist()
-            #
+
             # print(future)
 
             data_n.at[i,'future_real']=future
@@ -728,8 +730,10 @@ class Simple_forecast():
         print(data_n.info())
         data_n=data_n.set_index('DateTime')
         
+        print("# calculate pred for each step")
         for i in indexes_pred:
             
+            print(i)
             last=self.pred_ref.at[i,'RealPower']
             
             idx_start=i+timedelta(minutes=15)
@@ -739,7 +743,6 @@ class Simple_forecast():
             assert len(historical_ave)==K
             pred=[]
             for k in range(K):
-                #print(type(k))
                 pred.append(last*last_weights[k]+historical_ave[k]*(1-last_weights[k]))
             
             data_n.at[i,'RealPower_pred']=pred
@@ -790,6 +793,7 @@ class Simple_forecast():
             for i in indexes_pred:
                 data_n.loc[i,'MAPE_'+str(k)]=\
                     mean_absolute_percentage_error(data_n.at[i,'RealPower_pred'][:k],data_n.loc[i,'future_real'][:k])
+            print(k," done")
                 
         self.pred=data_n.copy()
         return data_n
@@ -833,10 +837,9 @@ class Prediction_evaluation():
             simple['DateTime']=pd.to_datetime(simple['DateTime'])
             print("Notification: data type of simple predeiction:")
             print(simple['Pred_Simple'].dtype)
-            xgb=pd.read_csv(xgb_path).rename(columns={'RealPower_pred':'Pred_XGB'})
+            xgb=pd.read_csv(xgb_path).rename(columns={'RealPower':'Pred_XGB'})
             xgb['DateTime']=pd.to_datetime(xgb['DateTime'])
-            #print("Notification: data type of XGB predeiction:")
-            #print(simple['Pred_XGB'].dtype)
+
         except:
             print('Fail to load prediction data, check whether the csv file contains columns:"RealPower_pred" ')
             
@@ -844,16 +847,10 @@ class Prediction_evaluation():
         # we need to recover it here
         xgb['Pred_XGB']=xgb['Pred_XGB']*self.scale_coef
         df=pd.merge(simple,xgb,on='DateTime',how='left')
-        #df=df.T.drop_duplicates().T
-        #df.index.name='index'
-        #df=df.drop(columns=['DateTime'])
-        #df.index.name='DateTime'
-        print(df.info())
 
-        #df=df.rename(columns={'RealPower_x':'RealPower'})
-        #df=df.drop(columns={"RealPower_y"})
-        #df.index = pd.to_datetime(df['DateTime'])
+        print(df.info())
         return df
+    
     
     def metrics_all(self):
         
@@ -867,14 +864,9 @@ class Prediction_evaluation():
         # to calculate the average of all values in the columns of Simple metrics
         simple=dict()
         for i in self.simple_metrics:
-            #print(i)
-            #print(type(i))
-            #print(type(df[str(i)]))
-            #print(df[str(i)])
-            #print(type(df[str(i)].mean()))
             a=df[str(i)].mean()
             simple[str(i)]=a
-        #print(df.head(-10))
+
         df['MSE_XGB']=df[['RealPower','Pred_XGB']].apply(lambda x: np.power(x['RealPower']-x['Pred_XGB'],2)\
             if x['RealPower']!=None and x['Pred_XGB']!= None else None,axis=1)
         
