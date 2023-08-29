@@ -100,7 +100,7 @@ def intersection_sum(prefix='BLD',postfix=None,fn_list=None,src_path=None,key=No
     combined_df=combined_df.sort_values(by=["DateTime"],ignore_index=True)
     combined_df.to_csv(save_fn,index=False)
 
-class Data_encoder():
+class Data_encoder(): 
     '''
     init requires inputs like:
         weather_setting_={
@@ -163,11 +163,7 @@ class Data_encoder():
 
         weather_keys=self.weather_setting['keys'].copy()
         weather_keys.append('DateTime')
-        weather=raw[weather_keys]
-        
-        #turn weather data into floats
-        for i in self.weather_setting['keys']:
-            weather[i]=weather[i].astype(float)
+        weather=raw[weather_keys]      
 
         #replace weather description with intergers
         if 'weather_main' in weather_keys:
@@ -175,6 +171,10 @@ class Data_encoder():
                         "Haze":6, "Mist":7, "Rain":8, "Smoke":9, "Thunderstorm":10}
             weather = weather.replace({"weather_main": column_dict})
             weather['weather_main'].astype(int)
+            
+        #turn weather data into floats
+        for i in self.weather_setting['keys']:
+            weather[i]=weather[i].astype(float)
         
         #get the historical data according to the dict  
         weather_setting_inside=self.weather_setting.copy()

@@ -119,10 +119,20 @@ class Data_encoder():
         
         #check if all needed keys are specified
         data_setting_key_list=['load_from_existing_file','data_fn','src_path','load_type',
+                               'enable_target_encoding',
                                'split_date','save_folder','save_prefix','days_ahead']
         for i in data_setting_key_list:
             if i not in data_setting_.keys():
-                raise Exception('Unspecified keys:'+i)
+                raise Exception('Unspecified data_setting keys:'+i)
+            
+        weather_setting_key_list=['weather_fn','keys','shift',
+                                  'enable_target_encoding','target_encode_keys',
+                                  'target_encoding_start','split_date']
+        for i in weather_setting_key_list:
+            if i not in weather_setting_.keys():
+                raise Exception('Unspecified weather_setting keys:'+i)
+            
+        
         self.load=None
         self.meta_load=None
         
@@ -130,15 +140,15 @@ class Data_encoder():
         self.weather_setting=weather_setting_.copy()
         self.data_setting=data_setting_.copy()
         
-        #get weather data, historical weather was shifted here
-        self.weather=self.get_weather_data()
-        
         #get raw load data, datatime type specified, 'hour_match' generated
         self.load=self.get_load_data().copy()
         
         self.load=self.encode_time_features().copy()
         #get the 
         self.encoded_load=self.encode_load_shift()
+        
+        #get weather data, historical weather was shifted here
+        self.weather=self.get_weather_data()
         
         self.merged_load=self.get_merged_data()
         self.save_data()
@@ -165,23 +175,75 @@ class Data_encoder():
         weather_keys.append('DateTime')
         weather=raw[weather_keys]
         
-        #turn weather data into floats
-        for i in self.weather_setting['keys']:
-            weather[i]=weather[i].astype(float)
-
         #replace weather description with intergers
         if 'weather_main' in weather_keys:
             column_dict = {'Clear': 1, 'Clouds':2, "Drizzle":3, "Dust":4,"Fog":5, 
                         "Haze":6, "Mist":7, "Rain":8, "Smoke":9, "Thunderstorm":10}
             weather = weather.replace({"weather_main": column_dict})
             weather['weather_main'].astype(int)
+            
+        #turn weather data into floats
+        for i in self.weather_setting['keys']:
+            weather[i]=weather[i].astype(float)
+            
+        weather['hour_match']=weather['DateTime'].dt.strftime("%Y-%m-%d-%H")
+                
+        load_ref=self.get_load_data().copy()
+        load_ref=load_ref.drop(columns=['DateTime']).copy()
+        assert 'DateTime' not in load_ref
+        weather=pd.merge(load_ref,weather,how='left',on='hour_match')\
+            .sort_values(by='DateTime').drop(columns=['hour_match'])
+        
+        assert 'DateTime' in weather
+        
+        
+              
+        
+        def encode_weather_features_targeting(ori,start_date,end_date):
+            df=ori.copy()
+            df=df.set_index("DateTime").sort_index()
+            df=df.loc[df.index>=start_date]
+            df_base=df.loc[df.index<end_date].copy()
+            
+            # check if target keys are all valid
+            assert self.weather_setting['target_encode_keys'] is not None
+            for target_key in self.weather_setting['target_encode_keys']:
+                assert target_key in self.weather_setting['keys']
+                
+            #calculate the maping encode for each time feature in the following list
+            target_encode_columns=self.weather_setting['target_encode_keys']
+            
+            target = ['RealPower']
+            target_encode_df = df_base[target_encode_columns + target].reset_index().drop(columns = 'DateTime', axis = 1)
+            val_maps=list()
+            
+            for embed_col in target_encode_columns:
+                val_map = target_encode_df.groupby(embed_col)[target].mean().to_dict()[target[0]]
+                val_maps.append(val_map)
+            
+            #apply the mapping to the data
+            k=0
+            #df=ori.copy()
+            for key in target_encode_columns:
+                df[key]=df[key].map(val_maps[k]).values
+                k=k+1
+            return df
+        
+        if self.weather_setting['enable_target_encoding'] is True:
+            weather=encode_weather_features_targeting(ori=weather,
+                                           start_date=self.weather_setting['target_encoding_start'],
+                                           end_date=self.weather_setting['split_date'])
+            
+        weather=weather.reset_index()
         
         #get the historical data according to the dict  
         weather_setting_inside=self.weather_setting.copy()
         
         weather=self.encode_shift(weather_setting_inside,weather,'h').copy()
+            
         weather=weather.drop(columns=weather_keys)
-        
+        weather=weather.drop(columns=['RealPower']).copy()
+
         return weather
     
     def get_load_data(self):
@@ -336,7 +398,6 @@ class Data_encoder():
         temp.index.name='old'
         temp['DateTime']=temp.index
         self.load=temp.copy()
-        #print(temp)
         return temp
 
     def sin_transformer(self,period):
