@@ -173,7 +173,7 @@ class Predictor_load_Noise(Predictor_load_GT):
         if self.scale>0.5:
             raise Warning("self.scale higher than 0.5, may lead to infasiblility")
         
-        if self.rule == "normal":
+        if self.rule in ["normal","normal_pos","normal_neg"]:
             # make most of the coef constrainted within [-1,1] by keep scale=1/3 
             coef=np.random.normal(loc=self.loc, scale=self.scale, size=len(pred_ref))
             absolute_average = np.mean(np.abs(coef))
@@ -181,7 +181,14 @@ class Predictor_load_Noise(Predictor_load_GT):
             coef=coef*adjustment_factor
             # cut down coef exceeding the range
             np.clip(coef,-1,1)
-            pred=pred_ref*coef+pred_ref
+            if self.rule=="normal":
+                pred=pred_ref*coef+pred_ref
+            elif self.rule=="normal_pos":
+                coef=abs(coef)
+                pred=pred_ref*coef+pred_ref
+            elif self.rule=="normal_neg":
+                coef=-abs(coef)
+                pred=pred_ref*coef+pred_ref
         
         elif self.rule == "uniform":
             coef=np.random.uniform(low=self.scale*(-2), high=self.scale*2, size=len(pred_ref))
