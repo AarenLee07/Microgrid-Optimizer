@@ -164,7 +164,7 @@ class Predictor_load_Noise(Predictor_load_GT):
 
     def get_prediction(self, t, K, delta):
         
-        if self.rule not in ["normal","uniform","uniform_pos","uniform_neg"]:
+        if self.rule not in ["normal","normal_pos","normal_neg","uniform","uniform_pos","uniform_neg"]:
             raise Exception("Noise generating rule not implemented: ",self.rule)
         
         pred_ref=self.data_pool.data[f"load_{self.load_type}"].loc[t:t+timedelta(hours=(K-1)*delta)]
