@@ -426,6 +426,7 @@ class MPC_op():
             sol_last_step=self.pred_action_log["p_grid"].loc[t_prev][:exe_K]
             #sol_last_step=self.pred_action_log["p_grid"][self.pred_action_log["p_grid"]['index']==t_prev].copy()
             #sol_last_step.set_index("index",inplace=True)
+            dc_prev_max=None
             if self.op_params['p_grid_max_method']=='minimize':
                 dc_prev_max = min(p_grid_exe_prev_max,max(sol_last_step))
             elif self.op_params['p_grid_max_method']=='minimize_cap':
