@@ -1,0 +1,70 @@
+weather_setting_={
+    'weather_fn':r'D:\Codes\GIthub_repo\Energy_grid\data\UCSD_raw_data\Weather_SanDiego.csv',
+    'keys':['temp','temp_min','temp_max'],
+    'shift':[6,6,6] 
+} 
+data_setting_={
+    'load_from_existing_file':True,
+    'data_fn':None,
+    'src_path':r'D:/Codes/GIthub_repo/Energy_grid/data/UCSD_raw_data/',
+    'save_prefix':'0722_target_encoding_7d_5h',
+    'save_folder':r'D:/Codes/GIthub_repo/Energy_grid/scripts/XGboost_Optuna/data/',
+    'days_ahead':[1,2,3,4,5,6,7],
+    'hours_ahead':[1,0,-1],
+    'enable_target_encoding':True, 
+    'target_encoding_start':'01-Jan-2017',
+    'load_type':'BLD',
+    'split_date':'01-Jan-2019'
+}
+blds=[
+    'CenterHall',###
+    #'EastCampus',# deleted
+    'GalbraithHall',  ###
+    #'GeiselLibrary',# deleted
+    #'Gilman',# missing of test sets
+    'Hopkins', ###
+    'Mandeville',  ###
+    'MusicBuilding', ###
+    #'OttersonHall',# missing of test sets
+    'PepperCanyon', ###
+    #'PoliceDepartment', deleted
+    'RadyHall',   ###
+    #'RobinsonHall', # missing of test sets
+    'SocialScience', ###
+    #'StudentServices' deleted
+]
+
+model_setting_={
+    'n_trials':30,
+    'metrics':'neg_mean_absolute_percentage_error',
+    'stop_threshold':-0.03,
+    'model_folder':r'D:/Codes/GIthub_repo/Energy_grid/scripts/XGboost_Optuna/model/',
+    'save_prefix':'0722_5',
+    'visualization_types':['optimization_history','contour','slice'],
+    'params':{
+        'max_depth':[1,5],
+        'learning_rate':[0.001,0.005],
+        'min_child_weight':[7,10],
+        'n_eatimators':[5,125],
+        'gamma':[0.75,1],
+        'subsample':[0.01,0.1],
+        'colsample_bytree':[0.01,0.1],
+        'reg_alpha':[1e-8,1],
+        'reg_lambda':[1e-8,1],
+    }
+}
+
+for i in blds:   
+    data_setting_['data_fn']=i
+    print('*'*50)
+    print('Fitting model for: '+i)
+    print('*'*50)
+    case=XGBoost_Optuna(data_setting_=data_setting_,
+                        weather_setting_=weather_setting_,
+                        model_setting_=model_setting_,
+                        )
+    case.optuna_optimizer()
+    case.optuna_visualization()
+    case.refit_best_trail()
+    case.predict_n_evaluate()
+    case.save_model()

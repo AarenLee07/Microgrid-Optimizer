@@ -88,6 +88,7 @@ class MPC_ExperimentManager(ExperimentManager):
         op_params["dc_formulation"]=params.get("dc_formulation", "moving")
         op_params["disturbance_rule"]=params.get("disturbance_rule", "uniform")
         op_params["disturbance_scale"]=params.get("disturbance_scale", 0.03)
+        op_params["p_grid_max_method"]=params.get("p_grid_max_method","by_solution")
         op_params["p_grid_max"] = None if p_grid_max is None else str(p_grid_max)
         pred_model = params.get("pred_model", "GT") 
         
