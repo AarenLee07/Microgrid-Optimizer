@@ -28,13 +28,31 @@ rc_={
 }
 
 color_dic_glb={
-        'MPC-GT':'seagreen',
+        'MPC-GT':'seagreen',# aquamarine
         'MPC-Prediction':'navy',
         'MPC-Heuristic':'steelblue',
         'MPC-Naive':'slategray',
-        'MSC-GT':'orangered',
+        'MSC-GT':'orangered', #green
         'MPC-Disturbance':'purple',
         'MSC-Naive':'grey'
+    }
+color_dic_glb_w={
+        'MPC-GT':'w',# aquamarine
+        'MPC-Prediction':'w',
+        'MPC-Heuristic':'w',
+        'MPC-Naive':'w',
+        'MSC-GT':'w', #green
+        'MPC-Disturbance':'w',
+        'MSC-Naive':'w'
+    }
+marker_dic_glb_w={
+        'MPC-GT':'_',
+        'MPC-Prediction':'^',
+        'MPC-Heuristic':'x',
+        'MPC-Naive':'v',
+        'MPC-Disturbance':'+',
+        'MSC-GT':'_',
+        'MSC-Naive':'_'
     }
 
 marker_dic_glb={
@@ -47,6 +65,50 @@ marker_dic_glb={
         'MSC-Naive':'_'
     }
 
+def hex_to_RGB(hex_str):
+    """ #FFFFFF -> [255,255,255]"""
+    #Pass 16 to the integer function for change of base
+    return [int(hex_str[i:i+2], 16) for i in range(1,6,2)]
+
+def get_color_gradient(c1, c2, n):
+    """
+    Given two hex colors, returns a color gradient
+    with n colors.
+    """
+    assert n > 1
+    c1_rgb = np.array(hex_to_RGB(c1))/255
+    c2_rgb = np.array(hex_to_RGB(c2))/255
+    mix_pcts = [x/(n-1) for x in range(n)]
+    rgb_colors = [((1-mix)*c1_rgb + (mix*c2_rgb)) for mix in mix_pcts]
+    return ["#" + "".join([format(int(round(val*255)), "02x") for val in item]) for item in rgb_colors]
+
+def gradient_image(ax, direction=0.3, cmap_range=(0, 1), **kwargs):
+    """
+    Draw a gradient image based on a colormap.
+
+    Parameters
+    ----------
+    ax : Axes
+        The axes to draw on.
+    direction : float
+        The direction of the gradient. This is a number in
+        range 0 (=vertical) to 1 (=horizontal).
+    cmap_range : float, float
+        The fraction (cmin, cmax) of the colormap that should be
+        used for the gradient, where the complete colormap is (0, 1).
+    **kwargs
+        Other parameters are passed on to `.Axes.imshow()`.
+        In particular, *cmap*, *extent*, and *transform* may be useful.
+    """
+    phi = direction * np.pi / 2
+    v = np.array([np.cos(phi), np.sin(phi)])
+    X = np.array([[v @ [1, 0], v @ [1, 1]],
+                  [v @ [0, 0], v @ [0, 1]]])
+    a, b = cmap_range
+    X = a + (b - a) / X.max() * X
+    im = ax.imshow(X, interpolation='bicubic', clim=(0, 1),
+                   aspect='auto', **kwargs)
+    return im
 
 # process the original data
 def pre_process(df,key,duration_key):
@@ -290,16 +352,30 @@ def mplot_origin_valid_bar(params):
                             figsize=params["figsize"],
                             sharey=True)
     fontsize=params["fontsize"]
+    limit=params["limit"]  
+    relative=params["relative"]
     
     for i in range(params["n_subplots"]):
         i=str(i)
-        df=params["subplots"][i]["df"]
-        relative=params["subplots"][i]["relative"]
         key=params["subplots"][i]["key"]
-        limit=params["subplots"][i]["limit"]    
+        df=params["subplots"][i]["df"]
         duration_key=params["subplots"][i]["duration_key"]
         subtitle=params["subplots"][i]["subtitle"]
+        is_gradient=params["subplots"][i]["gradient_params"]
         i=int(i)
+        
+        if is_gradient:
+            gd_params=params["subplots"][str(i)]["gradient_params"]
+            gradient_image(axs[i], direction=0, extent=gd_params["extend"], transform=axs[i].transAxes,
+               cmap=plt.colormaps[gd_params["cmap_name"]], cmap_range=gd_params["cmap_range"], alpha=gd_params["alpha"])
+            color_dict=color_dic_glb_w
+            maker_dict=marker_dic_glb_w
+
+        else:
+            color_dict=color_dic_glb
+            maker_dict=marker_dic_glb
+            
+        #axs[i].bar(age_dict.keys(), age_dict.values(), color = get_color_gradient(color1, color2, len(age_dict)))
         
         if relative:
             new_key='relative_'+key
@@ -313,8 +389,7 @@ def mplot_origin_valid_bar(params):
         y_coor=np.array([df_valid[df_valid.label=='MPC-Heuristic'][new_key],\
             df_valid[df_valid.label=='MPC-Prediction'][new_key]])
         
-        color_dict=color_dic_glb
-        maker_dict=marker_dic_glb
+        
         
         axs[i].grid(axis = 'x',linestyle='--',alpha=0.1)
         axs[i].grid(axis = 'y',linestyle='--',alpha=0.8)
@@ -332,13 +407,20 @@ def mplot_origin_valid_bar(params):
         axs[i].set_xticks(ticks=scatter_x)
         axs[i].set_xticklabels(labels=label_x,fontsize=fontsize,rotation=45)
 
-        for g in np.unique(group):
-            m = np.where(group == g)
-            axs[i].scatter(scatter_x[m], scatter_y[m], label=g,c=color_dict[g],\
-                marker=maker_dict[g],s=250)
-        axs[i].set_ylim(limit)
         
-
+        if is_gradient:
+            for g in np.unique(group):
+                maker_dict=marker_dic_glb_w
+                m = np.where(group == g)
+                axs[i].scatter(scatter_x[m], scatter_y[m], label=g,c=color_dict[g],\
+                    marker=maker_dict[g],s=params["marker_s"]*0.12)
+        else:
+            for g in np.unique(group):
+                m = np.where(group == g)
+                axs[i].scatter(scatter_x[m], scatter_y[m], label=g,c=color_dict[g],\
+                    marker=maker_dict[g],s=params["marker_s"])
+            
+        axs[i].set_ylim(limit)
         
         if relative:
             #for i in range(len(x_coor[0])):
@@ -354,7 +436,7 @@ def mplot_origin_valid_bar(params):
             axs[i].bar(x=x_coor_MPC_GT[0],height=np.abs(y_coor_MPC_GT[0]-y_coor_MPC_GT[1]), \
                 bottom=y_coor_MPC_GT[0],color='seagreen',
                 width=0.6,alpha=0.1,label="MPC_GT")
-                
+            
         
         axs[i].set_xlabel(duration_key+" 2019",fontsize=fontsize*1.5)
         axs[i].set_title(subtitle,fontsize=fontsize*1.2)
