@@ -350,23 +350,27 @@ def mplot_origin_valid_bar(params):
         
     fig, axs = plt.subplots(nrows=1, ncols=params["n_subplots"],
                             figsize=params["figsize"],
-                            sharey=True)
+                            sharey=params["sharey"])
     fontsize=params["fontsize"]
-    limit=params["limit"]  
     relative=params["relative"]
     
     for i in range(params["n_subplots"]):
         i=str(i)
         key=params["subplots"][i]["key"]
         df=params["subplots"][i]["df"]
+        limit=params["subplots"][i]["limit"]  
         duration_key=params["subplots"][i]["duration_key"]
         subtitle=params["subplots"][i]["subtitle"]
-        is_gradient=params["subplots"][i]["gradient_params"]
+        is_gradient=params["subplots"][i]["gradient"]
         i=int(i)
         
         if is_gradient:
             gd_params=params["subplots"][str(i)]["gradient_params"]
-            gradient_image(axs[i], direction=0, extent=gd_params["extend"], transform=axs[i].transAxes,
+            # cal the gradient display range
+            extent_l=(gd_params["cmap_range"][0]*100-limit[0])/(limit[1]-limit[0])
+            extent_h=(gd_params["cmap_range"][1]*100-limit[0])/(limit[1]-limit[0])
+            extent=(0.01,0.99,extent_l,extent_h)
+            gradient_image(axs[i], direction=0, extent=extent, transform=axs[i].transAxes,
                cmap=plt.colormaps[gd_params["cmap_name"]], cmap_range=gd_params["cmap_range"], alpha=gd_params["alpha"])
             color_dict=color_dic_glb_w
             maker_dict=marker_dic_glb_w
@@ -375,8 +379,6 @@ def mplot_origin_valid_bar(params):
             color_dict=color_dic_glb
             maker_dict=marker_dic_glb
             
-        #axs[i].bar(age_dict.keys(), age_dict.values(), color = get_color_gradient(color1, color2, len(age_dict)))
-        
         if relative:
             new_key='relative_'+key
         else:
@@ -385,11 +387,8 @@ def mplot_origin_valid_bar(params):
 
         x_coor=np.array([df_valid[df_valid.label=='MPC-Prediction'][duration_key],\
             df_valid[df_valid.label=='MPC-Prediction'][duration_key]])
-
         y_coor=np.array([df_valid[df_valid.label=='MPC-Heuristic'][new_key],\
             df_valid[df_valid.label=='MPC-Prediction'][new_key]])
-        
-        
         
         axs[i].grid(axis = 'x',linestyle='--',alpha=0.1)
         axs[i].grid(axis = 'y',linestyle='--',alpha=0.8)
@@ -398,6 +397,13 @@ def mplot_origin_valid_bar(params):
         scatter_y=np.array(df[new_key])
 
         group=np.array(df['label'])
+        if params["show_line"]:
+            for label in group:
+                x=np.array(df_valid[df_valid.label==label][duration_key])
+                y=np.array(df_valid[df_valid.label==label][new_key])
+                axs[i].plot(x, y, color='white', linestyle='dashed',
+                    linewidth=0.3, markersize=0,alpha=0.3)
+        
         label_x=[]
         for k in scatter_x: 
             if duration_key=='month_of_year':
@@ -406,7 +412,6 @@ def mplot_origin_valid_bar(params):
                 label_x.append(duration_key+str(k))
         axs[i].set_xticks(ticks=scatter_x)
         axs[i].set_xticklabels(labels=label_x,fontsize=fontsize,rotation=45)
-
         
         if is_gradient:
             for g in np.unique(group):
@@ -423,7 +428,6 @@ def mplot_origin_valid_bar(params):
         axs[i].set_ylim(limit)
         
         if relative:
-            #for i in range(len(x_coor[0])):
             axs[i].bar(x=x_coor[0],height=np.abs(y_coor[0]-y_coor[1]), \
                 bottom=min_help(y_coor[0],y_coor[1]),
                 color='lightsteelblue',width=0.6,alpha=0.3,label="Prediction<Heuristic")
@@ -443,7 +447,11 @@ def mplot_origin_valid_bar(params):
         if i==0:
             axs[i].set_ylabel("Relative "*relative+key+" (Percentage)"*relative+"(US dollar/day)"*(not relative),fontsize=fontsize*1.5)
     
-    plt.legend(loc='upper right',bbox_to_anchor=(1.5,1),fontsize=fontsize)
+    leg = plt.legend(loc='upper right', bbox_to_anchor=(1.5, 1), fontsize=fontsize)
+    if is_gradient:
+        for handle in leg.legendHandles:
+            handle.set_color('black')
+        
     if relative*params["show_notes"]:
         plt.text(s="Notes: 1. "+key+" under MPC-GT is marked as lower bound while MSC_GT marked as upper bound.",
                 fontsize=fontsize*1.2, x=0, y=-40
