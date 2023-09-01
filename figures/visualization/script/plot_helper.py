@@ -561,3 +561,69 @@ def plot_box(df,relative,limit,figsize,key,save_fn,fontsize):
     if save_fn is not None:
         plt.savefig(save_fn)
     plt.show()
+    
+    
+def mplot_disturbance_type(params):
+    fig, axs = plt.subplots(nrows=1, ncols=params["n_subplots"],
+        figsize=params["figsize"],
+        sharey=params["sharey"])
+    fontsize=params["fontsize"]
+    relative=params["relative"]
+    compare_key=params["compare_key"]
+    df=params["df"]
+    for i in range(params["n_subplots"]):
+        i=str(i)
+        key=params["subplots"][i]["key"]
+        
+        limit=params["subplots"][i]["limit"]  
+        method_key=params["subplots"][i]["method"]
+        x_key=params["subplots"][i]["x_key"]
+        subtitle=params["subplots"][i]["subtitle"]
+        i=int(i)
+        
+        x_labels=np.array((df[df[compare_key]==method_key][x_key])*100)
+           
+        x_coor=np.linspace(0, len(df[df[compare_key]==method_key][x_key])-1, len(df[df[compare_key]==method_key][x_key]))
+        y_coor_tou=np.array(df[df[compare_key]==method_key]["tou_cost"])
+        y_coor_dc=np.array(df[df[compare_key]==method_key]["demand_charge"])
+
+        axs[i].bar(x=x_coor,height=y_coor_tou,
+                bottom=[0]*len(x_coor),
+                color='lightblue',width=0.5,
+                alpha=0.5,label="tou_cost")
+        axs[i].bar(x=x_coor,height=y_coor_dc,
+                bottom=y_coor_tou,
+                color='cadetblue',width=0.5,
+                alpha=0.5,label="demand_charge")
+    
+        axs[i].set_xticks(ticks=x_coor)
+        axs[i].set_xticklabels(labels=np.round(x_labels,1),fontsize=fontsize,rotation=45)
+
+        for label, color in zip(axs[i].get_xticklabels(), ["darkred"]*3+["black"]*13+["darkred"]*5):
+            label.set_color(color)
+
+        axs[i].set_ylim(limit)
+        axs[i].set_title(subtitle,fontsize=fontsize*1.2)
+        axs[i].axhline(y=df.loc[(df.pred_model=='GT')&(df.method=='MPC')]["OPEX"].values[0],
+                       color='seagreen', linestyle='-', linewidth=1, label="MPC-GT-OPEX")
+        axs[i].axhline(y=df.loc[(df.pred_model=='GT')&(df.method=='MPC')]["tou_cost"].values[0],
+                       color='seagreen', linestyle='--', linewidth=1, label="MPC-GT-tou")
+        axs[i].axhline(y=df.loc[(df.pred_model=='GT')&(df.method=='RBC')]["OPEX"].values[0],
+                       color='orangered', linestyle='-', linewidth=1, label="MSC-GT-OPEX")
+        axs[i].axhline(y=df.loc[(df.pred_model=='GT')&(df.method=='RBC')]["tou_cost"].values[0],
+                       color='orangered', linestyle='--', linewidth=1, label="MSC-GT-tou")
+        
+        if i==0:
+            
+            axs[i].set_xlabel("MAPE(\%)",fontsize=fontsize*1.5,loc="left")
+            axs[i].set_ylabel("Relative "*relative+key+" (Percentage)"*relative+"(US dollar/day)"*(not relative),fontsize=fontsize*1.5)    
+    
+    leg = plt.legend(loc='upper right', bbox_to_anchor=params["bbox_to_anchor"], fontsize=fontsize)
+    plt.suptitle(params["suptitle"],fontsize=fontsize*1.5)
+    plt.tight_layout()
+    
+    if params["save_fn"] is not None:
+        plt.savefig(params["save_fn"])
+    plt.show()
+    
+    return
