@@ -90,6 +90,8 @@ class MPC_ExperimentManager(ExperimentManager):
         op_params["disturbance_scale"]=params.get("disturbance_scale", 0.03)
         op_params["p_grid_max_method"]=params.get("p_grid_max_method","by_solution")
         op_params["p_grid_max"] = None if p_grid_max is None else str(p_grid_max)
+        op_params["shift"]=params.get("shift",None)
+        op_params["shift_ratio"]=params.get("shift_ratio",None)
         pred_model = params.get("pred_model", "GT") 
         
         # 2023/05/30 LunLong
@@ -153,9 +155,9 @@ class MPC_ExperimentManager(ExperimentManager):
                 "loc":0,
                 "scale":op_params["disturbance_scale"],
             }
-            mpc.init_predictor(shortcut=pred_model, bld_kws=bld_kws)
+            mpc.init_predictor(shortcut=pred_model, bld_kws=bld_kws,shift=op_params["shift"],shift_ratio=op_params["shift_ratio"])
         else:
-            mpc.init_predictor(shortcut=pred_model, bld_kws=None)
+            mpc.init_predictor(shortcut=pred_model, bld_kws=None,shift=op_params["shift"],shift_ratio=op_params["shift_ratio"])
 
         # Step 6: initialize save_config
         mpc.init_save_config(save_fn=save_fn[:-5],  # FIXME: remove ".xlsx"

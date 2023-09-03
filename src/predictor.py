@@ -31,14 +31,14 @@ from datetime import datetime, timedelta
 
 class Predictor():
 
-    def __init__(self, data_pool, data_pool_xgb=None, shortcut = None, 
+    def __init__(self, data_pool, data_pool_xgb=None, shortcut = None, shift=None,shift_ratio=0,
                  bld=None, pv=None, ev=None, price_buy=None, price_sell=None,
                  bld_kws=None, pv_kws=None, ev_kws=None, price_buy_kws=None, price_sell_kws=None):
 
         self.data_pool = data_pool
         self.data_pool_xgb = data_pool_xgb
         
-        self.set_predictor(shortcut=shortcut,
+        self.set_predictor(shortcut=shortcut,shift=shift,shift_ratio=shift_ratio,
                  bld=bld, pv=pv, ev=ev, price_buy=price_buy, price_sell=price_sell,
                  bld_kws=bld_kws, pv_kws=pv_kws, ev_kws=ev_kws, 
                  price_buy_kws=price_buy_kws, price_sell_kws=price_sell_kws)
@@ -55,12 +55,13 @@ class Predictor():
         return pred
 
 
-    def set_predictor(self, shortcut, bld=None, pv=None, ev=None, price_buy=None, price_sell=None,
+    def set_predictor(self, shortcut, bld=None, pv=None, ev=None, price_buy=None, price_sell=None, shift=None,shift_ratio=0,
                  bld_kws=None, pv_kws=None, ev_kws=None, price_buy_kws=None, price_sell_kws=None,**predictors):
 
         predictor_tmp = predictors
 
-        short_cut = {
+        
+        short_cut_dic_1 = {
             #all GT as the upper bound
             "GT": {
                 "bld": Predictor_load_GT, "bld_kws": None,
@@ -104,9 +105,58 @@ class Predictor():
                 },      
         }
 
+        short_cut_dic_2 = {
+            #all GT as the upper bound
+            "GT": {
+                "bld": Predictor_load_GT, "bld_kws": None,
+                "pv": Predictor_load_GT, "pv_kws": None,
+                "ev": Predictor_ev_GT, "ev_kws": None,
+                "price_buy": Predictor_tou_SDGE_DA, "price_buy_kws": None,
+                "price_sell": None, "price_sell_kws": None
+                },
+            "Simple": {
+                "bld": Predictor_load_Simple_shift, "bld_kws": {"rule": "week", "num": 4, "exp_alpha": 0.1, "shift_ratio":shift_ratio},#"bld": Predictor_load_GT, "bld_kws": None,
+                "pv": Predictor_load_GT, "pv_kws": None,# Predictor_load_Simple, "pv_kws": {"rule": "day", "num": 3, "exp_alpha": 0.1},
+                "ev": Predictor_ev_GT, "ev_kws": None,
+                #"ev": Predictor_ev_Simple, "ev_kws": {"rule": "week", "num": 1},
+                "price_buy": Predictor_tou_SDGE_DA, "price_buy_kws": None,
+                "price_sell": None, "price_sell_kws": None
+                },
+            # all naive as the lower bound
+            "Naive": {
+                "bld": Predictor_load_Simple_shift, "bld_kws": {"rule": "naive","shift_ratio":shift_ratio},#"bld": Predictor_load_GT, "bld_kws": None,
+                "pv": Predictor_load_GT, "pv_kws": None, # Predictor_load_Simple, "pv_kws": {"rule": "naive"},
+                "ev": Predictor_ev_GT, "ev_kws": None, # Predictor_ev_Simple, "ev_kws": {"rule": "naive"},
+                "price_buy": Predictor_tou_SDGE_DA, "price_buy_kws": None,
+                "price_sell": None, "price_sell_kws": None
+                },
+            # UPDATE: 2023-07-21 LunLong
+            # add the implementation of XGBoost prediction
+            # "pv": Predictor_load_XGBoost, "pv_kws": {"xgb_prediction_path":'D:/Codes/GIthub_repo/Energy_grid/data/load_forecast/XGB/PV_sum_XGBoost_prediction.csv'},
+            "Prediction":{ 
+                "bld": Predictor_load_XGBoost_shift, "bld_kws":{"data_pool_xgb":self.data_pool_xgb, "shift_ratio":shift_ratio},#"bld": Predictor_load_GT, "bld_kws": None
+                "pv": Predictor_load_GT, "pv_kws": None, #  Predictor_load_Simple, "pv_kws": {"rule": "day", "num": 3, "exp_alpha": 0.1},
+                "ev": Predictor_ev_GT, "ev_kws": None,
+                "price_buy": Predictor_tou_SDGE_DA, "price_buy_kws": None,
+                "price_sell": None, "price_sell_kws": None
+                },
+            "Disturbance":{
+                "bld": Predictor_load_Noise, "bld_kws":bld_kws,#"bld": Predictor_load_GT, "bld_kws": None
+                "pv": Predictor_load_GT, "pv_kws": None, #  Predictor_load_Simple, "pv_kws": {"rule": "day", "num": 3, "exp_alpha": 0.1},
+                "ev": Predictor_ev_GT, "ev_kws": None,
+                "price_buy": Predictor_tou_SDGE_DA, "price_buy_kws": None,
+                "price_sell": None, "price_sell_kws": None
+                },      
+        }
+        if shift is None:
+            short_cut_dic=short_cut_dic_1
+        elif shift:
+            short_cut_dic=short_cut_dic_2
+        else:
+            raise Exception("unrecognized shift")
 
-        if shortcut in short_cut.keys():
-            predictor = short_cut[shortcut]
+        if shortcut in short_cut_dic.keys():
+            predictor = short_cut_dic[shortcut]
             # TODO: enable to update shortcut settings with corresponding kwargs in predictor_tmp 
         else:
             predictor = predictor_tmp
@@ -342,12 +392,49 @@ class Predictor_load_Simple(Predictor_load_GT):
                 pred = pd.Series(pred_values, index=idx_ori)
         
         assert len(pred) == K
-        
-        #print("Simple method called and predictions are as follows:")
-        #print(type(pred))
-        #print(pred)
+
         return pred
 
+
+class Predictor_load_Simple_shift(Predictor_load_GT):
+    def __init__(self, data_pool, load_type, rule, **rule_kws):
+        super().__init__(data_pool, load_type)
+        self.rule = rule    # suggest: bld: "week"; pv: "day"
+        self.num = rule_kws.get("num", 1)   # suggest: bld: 1, pv: 3
+        self.exp_alpha = rule_kws.get("exp_alpha", None)    # suggest: 0.1
+        self.shift_ratio=rule_kws.get("shift_ratio",0)
+
+    def get_prediction(self, t, K, delta):
+        
+        t_prev = t - timedelta(hours = delta)
+        data = self.data_pool.data[f"load_{self.load_type}"]
+        last = data.loc[t_prev]   # load at last step
+        
+        # [Lunlong 2023/08/23] fix a bug, when rule==naive, return a series rather than ndarray
+        #                      same bug when not naive
+        if self.rule == "naive":
+            idx = pd.date_range(t, t+timedelta(hours=K*delta), freq=f"{delta}H", inclusive="left")
+            #idx = idx - idx.floor(freq="D")
+            pred = pd.Series(last, index=idx)
+        else:
+            ts = find_dates(t, K, delta, self.rule, self.num)
+            ts = data.index.intersection(ts)
+            if len(ts) < K:
+                pred = np.array([last] * K)
+            else:
+                pred_ref = data.loc[ts]
+                pred = pred_ref.groupby(pred_ref.index - pred_ref.index.floor(freq="D")).agg(np.nanmean)
+                idx_ori = pd.date_range(t, t+timedelta(hours=K*delta), freq=f"{delta}H", inclusive="left")
+                idx = idx_ori - idx_ori.floor(freq="D")
+                pred = pred.loc[idx].values
+                alpha = self.exp_alpha
+                last_weights = np.exp(- alpha*(np.arange(K)+1)) if alpha is not None else 0
+                pred_values = (last_weights * last + (1-last_weights) * pred)*(1+self.shift_ratio)     
+                pred = pd.Series(pred_values, index=idx_ori)
+        
+        assert len(pred) == K
+
+        return pred
     # UPDATE: 2023-07-21 LunLong
     # add the implementation of XGBoost prediction
     #class Predictor_load_XGBoost(Predictor_load_GT):
@@ -389,7 +476,18 @@ class Predictor_load_XGBoost(Load_Predictor):
         #print(pred_flatten)
         return pred_flatten
     '''
-
+class Predictor_load_XGBoost_shift(Load_Predictor):
+    def __init__(self,data_pool,load_type,**kw):
+        assert load_type in ["bld", "pv"]
+        self.load_type = load_type
+        self.data_pool_xgb=kw["data_pool_xgb"]
+        self.shift_ratio=kw["shift_ratio"]
+        
+    def get_prediction(self, t, K, delta):
+        pred = self.data_pool_xgb.data[f"load_{self.load_type}"].loc[t:t+timedelta(hours=(K-1)*delta)]
+        pred = pred+pred*self.shift_ratio
+        return pred
+    
 class Predictor_ev_Simple(Predictor_ev_GT):
     def __init__(self, data_pool, rule, **rule_kws):
         super().__init__(data_pool)
