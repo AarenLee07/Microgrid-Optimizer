@@ -668,15 +668,14 @@ class MPC_op():
             self.latest_max_pv_error_pos=max(load_pv-pred["load_pv"][exe_t],
                                             self.latest_max_pv_error_pos,0)
             
-            '''
-            if not np.isclose(p_grid,sol["p_grid"][0][k],rtol=0.1,atol=0.1):
+            if not np.isclose(p_grid,sol["p_grid"][0][k],rtol=0.01,atol=0.01) & self.op_params["check_inconsistency"]:
                 print(f"Infeasible when checking p_grid: "+str(p_grid)+" is not close to "+str(sol["p_grid"][0][k-1])+','+\
                     str(sol["p_grid"][0][k])+','+str(sol["p_grid"][0][k+1]),"exe_t:",exe_t,"\n",\
                         "load_bld vs sol_load_bld:",str(load_bld),",",str(params["load_bld"][k]),"\n",\
                         "load_pv vs sol_load_pv:",str(load_pv),",",str(params["load_pv"][k]),"\n",\
                         "load_ev vs sol_load_ev:" ,str(ev_p_sum) ,",",str(sol_ev_p),"\n",\
                         "bat_p:",str(bat_p))
-            '''
+            
             
 
             price_buy = params["energy_price_buy"][k]
@@ -1070,7 +1069,7 @@ class MPC_op():
         export_revenue = (grid_export * tou_export).mean() * 24
         tou_cost = import_cost - export_revenue
         #[Lunlong. 2023/08/18] add bat_e_tou
-        bat_e_revenue = sol["bat_e"][-1]*sol["tou_import"].mean()
+        bat_e_revenue = sol["bat_e"][-1]*sol["tou_import"].mean()/days
 
         df.loc["All", "grid_import"] = grid_import.mean() * 24
         df.loc["All", "grid_export"] = grid_export.mean() * 24

@@ -93,6 +93,11 @@ class MPC_ExperimentManager(ExperimentManager):
         op_params["shift"]=params.get("shift",None)
         op_params["shift_ratio"]=params.get("shift_ratio",None)
         pred_model = params.get("pred_model", "GT") 
+        if pred_model=='GT':
+            op_params["check_inconsistency"]=params.get("check_inconsistency",True)
+        else:
+            op_params["check_inconsistency"]=params.get("check_inconsistency",False)
+        
         
         # 2023/05/30 LunLong
         # Trying to add bld pv ev into grid search parmas
