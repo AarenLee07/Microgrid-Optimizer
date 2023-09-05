@@ -342,6 +342,7 @@ def plot_origin_valid_bar(df,relative,limit,figsize,key,save_fn,fontsize,
      
 def mplot_origin_valid_bar(params):
     
+    
     def min_help(a,b):
         for i in range(len(a)):
             if a[i]>b[i]:
@@ -356,8 +357,11 @@ def mplot_origin_valid_bar(params):
     
     for i in range(params["n_subplots"]):
         i=str(i)
+        
         key=params["subplots"][i]["key"]
         df=params["subplots"][i]["df"]
+        if params["labels_not_show"] != None:
+            df=df.drop(df[df["label"].isin(params["labels_not_show"])].index)
         limit=params["subplots"][i]["limit"]  
         duration_key=params["subplots"][i]["duration_key"]
         subtitle=params["subplots"][i]["subtitle"]
@@ -383,12 +387,9 @@ def mplot_origin_valid_bar(params):
             new_key='relative_'+key
         else:
             new_key=key
-        df_valid=df.drop(df[df.is_valid==False].index)
+        df_valid=df#.drop(df[df.is_valid==False].index)
 
-        x_coor=np.array([df_valid[df_valid.label=='MPC-Prediction'][duration_key],\
-            df_valid[df_valid.label=='MPC-Prediction'][duration_key]])
-        y_coor=np.array([df_valid[df_valid.label=='MPC-Heuristic'][new_key],\
-            df_valid[df_valid.label=='MPC-Prediction'][new_key]])
+
         
         axs[i].grid(axis = 'x',linestyle='--',alpha=0.1)
         axs[i].grid(axis = 'y',linestyle='--',alpha=0.8)
@@ -427,10 +428,18 @@ def mplot_origin_valid_bar(params):
             
         axs[i].set_ylim(limit)
         
-        if relative:
-            axs[i].bar(x=x_coor[0],height=np.abs(y_coor[0]-y_coor[1]), \
-                bottom=min_help(y_coor[0],y_coor[1]),
-                color='lightsteelblue',width=0.6,alpha=0.3,label="Prediction<Heuristic")
+        if relative :
+            if ('MPC-Prediction' in params["labels_not_show"]) or\
+                ('MPC-Heuristic'in params["labels_not_show"]):
+                    pass
+            else:
+                x_coor=np.array([df_valid[df_valid.label=='MPC-Prediction'][duration_key],\
+                    df_valid[df_valid.label=='MPC-Prediction'][duration_key]])
+                y_coor=np.array([df_valid[df_valid.label=='MPC-Heuristic'][new_key],\
+                    df_valid[df_valid.label=='MPC-Prediction'][new_key]])
+                axs[i].bar(x=x_coor[0],height=np.abs(y_coor[0]-y_coor[1]), \
+                    bottom=min_help(y_coor[0],y_coor[1]),
+                    color='lightsteelblue',width=0.6,alpha=0.3,label="Prediction<Heuristic")
             
         if not relative:
             x_coor_MPC_GT=np.array([df[df.label=='MPC-GT'][duration_key],\
