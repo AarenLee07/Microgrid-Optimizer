@@ -93,11 +93,13 @@ class MPC_ExperimentManager(ExperimentManager):
         op_params["shift"]=params.get("shift",None)
         op_params["shift_ratio"]=params.get("shift_ratio",None)
         pred_model = params.get("pred_model", "GT") 
+        print("pred_model:",pred_model)
         if pred_model=='GT':
             op_params["check_inconsistency"]=params.get("check_inconsistency",True)
         else:
-            op_params["check_inconsistency"]=params.get("check_inconsistency",False)
-        
+            op_params["check_inconsistency"]=False
+        pv_to_bld=params.get("pv_to_bld",0.5)
+        ev_to_bld=params.get("ev_to_bld",0.25)
         
         # 2023/05/30 LunLong
         # Trying to add bld pv ev into grid search parmas
@@ -128,7 +130,7 @@ class MPC_ExperimentManager(ExperimentManager):
             tstart_historical=datetime(2018,1,1,0,0),
             tstart_execution=datetime(2019,1,1,0,0),
             tend=datetime(2019,12,31,23,59), delta=0.25,
-            bld=bld, pv=pv, ev=ev, pv_to_bld=0.5, ev_to_bld=0.25, Pmax=10,
+            bld=bld, pv=pv, ev=ev, pv_to_bld=pv_to_bld, ev_to_bld=ev_to_bld, Pmax=10,
             pred_model=pred_model)
 
         '''
