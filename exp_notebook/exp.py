@@ -67,7 +67,7 @@ class MPC_ExperimentManager(ExperimentManager):
     """
 
         
-    def run_one_trial(self, params, save_fn):
+    def run_one_trial(self, params, save_fn, fork_id):
         
         # params: keys: "pred_model", "strategy", "B_kWh", "deg_model_opt", "deg_model", 
         #   "start", "end", "p_grid_max", "price_dc", "price_sell", "ev_charge_rule"
@@ -172,7 +172,7 @@ class MPC_ExperimentManager(ExperimentManager):
             checkpoints="1D", recovery=True, recovery_from=None,
             )
 
-        mpc.run(tstart=t_start, tend=t_end, exe_K=4, save=True)
+        mpc.run(tstart=t_start, tend=t_end, exe_K=4, save=True, fork_id=fork_id)
         
         stats = dict(mpc.summary["All"])
         

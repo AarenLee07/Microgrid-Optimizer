@@ -4,6 +4,8 @@ from datetime import datetime
 import time
 import win32file
 from time import sleep,ctime
+import threading
+import globals
 
 def is_used(file_name):
 	try:
@@ -19,7 +21,7 @@ def is_used(file_name):
 
 
 class ExperimentManager():
-    def __init__(self, log_fn, save_path, exp_prefix=None, 
+    def __init__(self, log_fn, save_path, exp_prefix=None, fork_id=None,
                  save=True, cover=True, **default_params):
         
         self.save = save
@@ -37,7 +39,7 @@ class ExperimentManager():
         self.exp_prefix = exp_prefix if exp_prefix is not None else ""
         self.cover = cover  # whetehr to cover existing file with same filename
 
-    def run(self, keys, num_trials=1):
+    def run(self, keys, num_trials=1, fork_id=None):
         
         for _ in range(num_trials):
             
@@ -45,6 +47,7 @@ class ExperimentManager():
             
             # STEP 1: find the next experiment to run
             # [Lunlong 2023/08/01] Modified for paralel threading, avoid accessing contradiction
+            ''' old naive way of handling thread contratiction
             tw=0
             while tw<20:
                 if is_used(self.log_fn):
@@ -55,17 +58,18 @@ class ExperimentManager():
                 else:
                     log = pd.read_excel(self.log_fn, index_col=0)
                     break
-            #log = pd.read_excel(self.log_fn, index_col=0)
+            '''
+            
+            # todo alert!  globals.semaphore_log acquire here
+            
+            globals.semaphore_log.acquire()
+            sleep(3)
+            log = pd.read_excel(self.log_fn, index_col=0, engine="openpyxl")
             log_to_run = log.loc[log["status"]==0]
-
             if len(log_to_run) == 0:
                 break
-
-
             trial_idx = log_to_run.index[0]
-            
             params = dict(log.loc[trial_idx, keys])
-
             for k in params:
                 v = params[k]
                 if v in ["none", "None", "NONE"]:
@@ -74,14 +78,13 @@ class ExperimentManager():
                     params[k] = True
                 if v in ["False", "FALSE", "false"]:
                     params[k] = False
-
             save_fn = self.save_filename_gen(params)
-            #  save_fn = 
-            
             log.loc[trial_idx, "status"] = "R"
             if self.save:
                 log.loc[trial_idx, "save_fn"] = save_fn
+                
             # [Lunlong 2023/08/01] Modified for paralel threading, avoid accessing contradiction
+            ''' old naive way of handling thread contratiction
             tw=0
             while tw<20:
                 if is_used(self.log_fn):
@@ -92,16 +95,24 @@ class ExperimentManager():
                 else:
                     log.to_excel(self.log_fn, index=True)
                     break
-
+            '''
+            log.to_excel(self.log_fn, index=True)
+            sleep(3)
+            globals.semaphore_log.release()
+            
+            # todo alert!  globals.semaphore_log release here
+            
             # STEP 2: run experiment with corresponding params
             #   [run_one_trial] method will be highly case-specific, need to override
             #   save results also need to implement inside 
             
-            stats = self.run_one_trial(params, save_fn)
+            stats = self.run_one_trial(params=params, save_fn=save_fn, fork_id=fork_id)
 
             # STEP 3: record trial stats
 
             # [Lunlong 2023/08/01] Modified for paralel threading, avoid accessing contradiction
+            # todo alert!  globals.semaphore_log acquire here
+            ''' old naive way of handling thread contratiction
             tw=0
             while tw<20:
                 if is_used(self.log_fn):
@@ -112,8 +123,10 @@ class ExperimentManager():
                 else:
                     log = pd.read_excel(self.log_fn, index_col=0)
                     break
-
-            #  log = pd.read_excel(self.log_fn, index_col=0)
+            '''
+            globals.semaphore_log.acquire()
+            sleep(3)
+            log = pd.read_excel(self.log_fn, index_col=0, engine="openpyxl")
 
             log.loc[trial_idx, "status"] = "D"
             log.loc[trial_idx, "runtime"] = time.perf_counter() - clock
@@ -122,6 +135,7 @@ class ExperimentManager():
                     log[k] = ""
                 log.loc[trial_idx, k] = stats[k]
             # [Lunlong 2023/08/01] Modified for paralel threading, avoid accessing contradiction
+            ''' old naive way of handling thread contratiction
             tw=0
             while tw<20:
                 if is_used(self.log_fn):
@@ -132,10 +146,15 @@ class ExperimentManager():
                 else:
                     log.to_excel(self.log_fn, index=True)
                     break
+            '''
            
-            #log.to_excel(self.log_fn, index=True)
+            log.to_excel(self.log_fn, index=True)
+            sleep(3)
             print(f"Done, trial {trial_idx}")
-
+            
+            globals.semaphore_log.release()
+            # todo alert!  globals.semaphore_log release here
+            
         print("="*20)
         print("DONE")
 

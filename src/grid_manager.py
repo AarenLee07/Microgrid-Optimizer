@@ -16,6 +16,8 @@ from data_pool import DataPool
 import xlsxwriter
 import copy
 
+first_start=True
+
 
 """
 ============================= UPDATES =============================
@@ -81,13 +83,15 @@ class MPC_op():
         self.latest_max_bld_error_pos=0
         self.latest_max_pv_error_neg=0
         self.latest_max_pv_error_pos=0
+        
+        self.first_start_flag=0
 
 
     """ the following methods are PUBLIC methods
         i.e., you can call them directly outside    
     """
 
-    def run(self, tstart=None, tend=None, exe_K=1, t_cut=False, save=False):
+    def run(self, tstart=None, tend=None, exe_K=1, t_cut=False, save=False, fork_id=None):
         
         # check source data & predictor has been initialized
         if self.data is None:
@@ -163,7 +167,7 @@ class MPC_op():
             # [Lunlong, 2023/08/08] to get the summary at first time step
             if save == True and t == tstart:
                 temp_MPC_op=copy.deepcopy(self)
-                temp_MPC_op.run_k_steps(t=t, exe_K=96, t_cut=t_cut)
+                temp_MPC_op.run_k_steps(t=t, exe_K=96, t_cut=t_cut, fork_id=fork_id, tstart=tstart)
                 op_log_temp = temp_MPC_op.op_log.dropna().copy()
                 assert len(op_log_temp)>0
                 self.summary_one_step=temp_MPC_op.op_summary(op_log_temp).copy().T
@@ -183,7 +187,7 @@ class MPC_op():
             print(e)
             raise KeyboardInterrupt()
             '''
-            self.run_k_steps(t, exe_K=exe_K, t_cut=t_cut)
+            self.run_k_steps(t, exe_K=exe_K, t_cut=t_cut, fork_id=fork_id, tstart=tstart)
             t += timedelta(hours=self.delta_0*exe_K)
         
         # save records when all complete
@@ -192,7 +196,7 @@ class MPC_op():
             if len(op_log_curr) > 0:
                 self.op_summary(op_log_curr)
             self.save()
-        print("="*25, "FINISH", "="*25)
+        print("="*20, "FINISH", "="*20)
          
     # [LunLong 2023/08/20] merge load_data() and init_historical_data() as one      
     # tstart_historical_data, tstart_execution_data, tend # ! should share the same end 
@@ -379,10 +383,10 @@ class MPC_op():
         i.e., don't call them directly outside
     """
 
-    def run_k_steps(self, t, exe_K=1, t_cut=False):
+    def run_k_steps(self, t, exe_K=1, t_cut=False, fork_id=None, tstart=None):
         # 0. start clock
         t_clock = time.perf_counter()
-        print("="*25, t, "="*25)    # FIXME: do not print too frequent
+        print("="*20, t,"thread_id:",str(fork_id), "="*20)    # FIXME: do not print too frequent
         
         
         """ STEP-1. update EV new_arrivals & new_departs """
@@ -426,18 +430,26 @@ class MPC_op():
             sol_last_step=self.pred_action_log["p_grid"].loc[t_prev][:exe_K]
             #sol_last_step=self.pred_action_log["p_grid"][self.pred_action_log["p_grid"]['index']==t_prev].copy()
             #sol_last_step.set_index("index",inplace=True)
-            dc_prev_max=None
-            if self.op_params['p_grid_max_method']=='minimize':
-                dc_prev_max = min(p_grid_exe_prev_max,max(sol_last_step))
-            elif self.op_params['p_grid_max_method']=='minimize_cap':
-                if p_grid_exe_prev_max>max(sol_last_step):
+            dc_prev_max=0
+            if self.first_start_flag>=1:
+                if self.op_params['p_grid_max_method']=='minimize':
                     dc_prev_max = min(p_grid_exe_prev_max,max(sol_last_step))
-            elif self.op_params['p_grid_max_method']=='zero':
-                dc_prev_max=0
-            elif self.op_params['p_grid_max_method']=='by_solution':
-                dc_prev_max=p_grid_exe_prev_max
-            else :
-                raise Warning("unimplemented p_grid_max_method: ",self.op_params['p_grid_max_method'])        
+                elif self.op_params['p_grid_max_method']=='minimize_cap':
+                    if p_grid_exe_prev_max>max(sol_last_step):
+                        dc_prev_max = min(p_grid_exe_prev_max,max(sol_last_step))
+                    dc_prev_max=p_grid_exe_prev_max
+                elif self.op_params['p_grid_max_method']=='zero':
+                    dc_prev_max=0
+                elif self.op_params['p_grid_max_method']=='by_solution':
+                    dc_prev_max=p_grid_exe_prev_max
+                else :
+                    raise Warning("unimplemented p_grid_max_method: ",self.op_params['p_grid_max_method']) 
+            else:
+                if self.op_params['p_grid_max_method']=='zero':
+                    dc_prev_max=0
+                else:
+                    dc_prev_max=p_grid_exe_prev_max 
+                self.first_start_flag=self.first_start_flag+1 
             params["dc_prev_max"] = dc_prev_max
         #else:
             #dc_prev_max=None
@@ -788,7 +800,7 @@ class MPC_op():
 
         if not os.path.exists(fn):
             return None
-        log_dfs = pd.read_excel(fn, sheet_name=None, index_col=0)
+        log_dfs = pd.read_excel(fn, sheet_name=None, index_col=0, engine="openpyxl")
         # [Yi, 2023/02/11] correct typo: opt_log -> op_log
         op_log = log_dfs["op_log"]
         op_log.index = pd.to_datetime(op_log.index, infer_datetime_format=True)

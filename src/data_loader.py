@@ -3,7 +3,11 @@ import sys
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
+from time import sleep,ctime
 import warnings
+
+import threading
+import globals
 
 from utils.utils import get_data_path
 data_path = get_data_path()
@@ -12,6 +16,9 @@ data_path = get_data_path()
 ============================= UPDATES =============================
 (write down updates on the code - the last updated one at the first)
 ===================================================================
+
+[LunLong, 2023/09/06]
+- add globals.semaphore to all file reading process
 
 [Yi, 2023/03/22]
 - fix a bug in rescale EVs (ev_to_bld)
@@ -98,7 +105,7 @@ class DataLoader():
         load_pv_tmp = self.data_tmp["load_pv"]
         if "ev_sessions" in self.data_tmp:
             ev_sessions_tmp = self.data_tmp["ev_sessions"]
-            warnings.warn("No ev data loaded, EIO if pred_model is Prediction")
+            #warnings.warn("No ev data loaded, EIO if pred_model is Prediction")
         else:
             ev_sessions_tmp = None
 
@@ -185,7 +192,7 @@ class DataLoader():
         if ev_to_bld is not None:
             ev_sessions = self.ev_sessions
             if ev_sessions is None:
-                warnings.warn("No EV data loaded, EIO if pred_model is Prediction.")
+                # warnings.warn("No EV data loaded, EIO if pred_model is Prediction.")
                 return
 
             ev_mean = (ev_sessions["e_targ"] - ev_sessions["e_init"]).sum()/\
@@ -252,12 +259,15 @@ def ev_data_loader(proj="UCSD", folder="UCSD_raw_data",
     fn_dir = {
         "UCSD": "EV_ChargePointEV"
     }
-
+    
+    globals.semaphore_ev.acquire()
     fn = os.path.join(data_path, folder, fn_dir[proj]+".csv")
     if proj in ["UCSD"]:
         df = pd.read_csv(fn)
     else:
         df = pd.read_csv(fn, index_col=0)
+    globals.semaphore_ev.release()
+    
     df.rename(columns=col_rename[proj], inplace=True)
     if proj in ["Boulder", "UCSD"]:
         df["ta"] = pd.to_datetime(df["ta"]) # remove '''infer_datetime_format=True'''
@@ -363,8 +373,12 @@ class UCSD_dataloader(DataLoader):
         if combined_fn is None:
             bld_fn = os.path.join(data_path, folder, "BLD_{}.csv".format(bld))
             pv_fn = os.path.join(data_path, folder, "PV_{}.csv".format(pv))
+            globals.semaphore_bld.acquire()
             load_bld = pd.read_csv(bld_fn, index_col=0)
+            globals.semaphore_bld.release()
+            globals.semaphore_pv.acquire()
             load_pv = pd.read_csv(pv_fn, index_col=0)
+            globals.semaphore_pv.release()
             load_bld.index = pd.to_datetime(load_bld.index) # remove '''infer_datetime_format=True'''
             load_pv.index = pd.to_datetime(load_pv.index) # remove '''infer_datetime_format=True'''
             self.data_tmp["load_bld"] = pd.Series(load_bld["RealPower"], copy=True)
@@ -376,7 +390,11 @@ class UCSD_dataloader(DataLoader):
 
         else:
             fn = os.path.join(data_path, folder, combined_fn)
-            dfs = pd.read_excel(fn, sheet_name=None, index_col=0)
+            globals.semaphore_combine.acquire()
+            sleep(2)
+            dfs = pd.read_excel(fn, sheet_name=None, index_col=0, engine="openpyxl")
+            sleep(3)
+            globals.semaphore_combine.release()
             
             df_load = dfs["load"]
             df_load.index = pd.to_datetime(df_load.index) # remove '''infer_datetime_format=True'''
@@ -421,8 +439,12 @@ class XGB_dataloader(DataLoader):
         if combined_fn is None:
             bld_fn = os.path.join(data_path, folder, "BLD_{}.csv".format(bld))
             pv_fn = os.path.join(data_path, folder, "PV_{}.csv".format(pv))
+            globals.semaphore_bld.acquire()
             load_bld = pd.read_csv(bld_fn, index_col=0)
+            globals.semaphore_bld.release()
+            globals.semaphore_pv.acquire()
             load_pv = pd.read_csv(pv_fn, index_col=0)
+            globals.semaphore_pv.release()
             load_bld.index = pd.to_datetime(load_bld.index) # remove '''infer_datetime_format=True'''
             load_pv.index = pd.to_datetime(load_pv.index) # remove '''infer_datetime_format=True'''
             self.data_tmp["load_bld"] = pd.Series(load_bld["RealPower"], copy=True)
@@ -431,8 +453,11 @@ class XGB_dataloader(DataLoader):
 
         else:
             fn = os.path.join(data_path, folder, combined_fn)
-            dfs = pd.read_excel(fn, sheet_name=None, index_col=0)
-            
+            globals.semaphore_combine.acquire()
+            sleep(3)
+            dfs = pd.read_excel(fn, sheet_name=None, index_col=0, engine="openpyxl")
+            sleep(3)
+            globals.semaphore_combine.release()
             df_load = dfs["load"]
             df_load.index = pd.to_datetime(df_load.index) # remove '''infer_datetime_format=True'''
             self.data_tmp["load_bld"] = pd.Series(df_load["bld"], copy=True)
