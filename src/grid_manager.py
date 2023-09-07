@@ -85,6 +85,7 @@ class MPC_op():
         self.latest_max_pv_error_pos=0
         
         self.first_start_flag=0
+        self.lastest_p_prev_max=None
 
 
     """ the following methods are PUBLIC methods
@@ -425,11 +426,13 @@ class MPC_op():
         #dc_prev_max=None
         if sum(sig_bill) > 0:
             # [Yi, 2023/02/02] correct typo: loc[..., "p"] -> loc[..., "p_grid"]
+            # p_grid_max of all executed steps
             p_grid_exe_prev_max = max(0, self.op_log.loc[sig_bill,"p_grid"].max())
+            # cal the previous timestep
             t_prev=t-timedelta(hours=self.delta_0*exe_K)
+            # solution given by the last opt step
             sol_last_step=self.pred_action_log["p_grid"].loc[t_prev][:exe_K]
-            #sol_last_step=self.pred_action_log["p_grid"][self.pred_action_log["p_grid"]['index']==t_prev].copy()
-            #sol_last_step.set_index("index",inplace=True)
+            # a temp container of p_grid_max
             dc_prev_max=0
             if self.first_start_flag>=1:
                 if self.op_params['p_grid_max_method']=='minimize':
@@ -440,10 +443,14 @@ class MPC_op():
                     dc_prev_max=p_grid_exe_prev_max
                 elif self.op_params['p_grid_max_method']=='zero':
                     dc_prev_max=0
-                elif self.op_params['p_grid_max_method']=='by_solution':
+                elif self.op_params['p_grid_max_method']=='by_execution':
                     dc_prev_max=p_grid_exe_prev_max
+                elif self.op_params['p_grid_max_method']=='by_solution':
+                    assert self.lastest_p_prev_max != None
+                    dc_prev_max=max(max(sol_last_step),self.lastest_p_prev_max)
                 else :
                     raise Warning("unimplemented p_grid_max_method: ",self.op_params['p_grid_max_method']) 
+            # for all methods the first step goes the same
             else:
                 if self.op_params['p_grid_max_method']=='zero':
                     dc_prev_max=0
@@ -451,6 +458,7 @@ class MPC_op():
                     dc_prev_max=p_grid_exe_prev_max 
                 self.first_start_flag=self.first_start_flag+1 
             params["dc_prev_max"] = dc_prev_max
+            self.lastest_p_prev_max = dc_prev_max
         #else:
             #dc_prev_max=None
         # battery soc_0

@@ -10,17 +10,17 @@ data_path = sys.path[0].replace("exp_notebook", "data")
 if src_path not in sys.path:
     sys.path.append(src_path)
 out_path = sys.path[0].replace("exp_notebook", "output")
-log_folder=r'L:\Coding_project\Energy_grid_new_exp_local'
-#log_folder=r'D:\Codes\Energy_grid_new_exp_local'
+#log_folder=r'L:\Coding_project\Energy_grid_new_exp_local'
+log_folder=r'D:\Codes\Energy_grid_new_exp_local'
 
 
-exp_suffix = "thesis_topic3"
+exp_suffix = "thesis_track_p_grid"
 exp_folder = os.path.join(out_path, "experiments", exp_suffix)
 debug_folder = os.path.join(out_path, "debug_test")
 assert os.path.exists(exp_folder)
-log_fn = os.path.join(exp_folder, "6h-bat-12months-0.6dc-GT-method-comparison.xlsx")#_oneday_12months
+log_fn = os.path.join(exp_folder, "6h-bat-Oct-track-p-grid.xlsx")#_oneday_12months
 
-save_path = os.path.join(log_folder,exp_suffix, "6h-bat-12months-0.6dc-GT-method-comparison")
+save_path = os.path.join(log_folder,exp_suffix, "6h-bat-Oct-track-p-grid")
 if not os.path.exists(save_path):
     os.makedirs(save_path)
 assert os.path.exists(save_path)
@@ -55,7 +55,7 @@ if __name__ == '__main__':
         t=Process(target=parallel,args=(str(i+1),)) #创建线程
         thread_list.append(t)
         t.start()  #启动线程
-        sleep(10)
+        sleep(20)
         
     for t in thread_list:
         t.join()
