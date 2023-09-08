@@ -10,8 +10,8 @@ data_path = sys.path[0].replace("exp_notebook", "data")
 if src_path not in sys.path:
     sys.path.append(src_path)
 out_path = sys.path[0].replace("exp_notebook", "output")
-#log_folder=r'L:\Coding_project\Energy_grid_new_exp_local'
-log_folder=r'D:\Codes\Energy_grid_new_exp_local'
+log_folder=r'L:\Coding_project\Energy_grid_new_exp_local'
+#log_folder=r'D:\Codes\Energy_grid_new_exp_local'
 
 
 exp_suffix = "thesis_track_p_grid"
@@ -50,8 +50,7 @@ def parallel(fork_id):
 if __name__ == '__main__':     
     thread_list= list()
     freeze_support()
-    for i in range(2):
-        
+    for i in range(6):
         t=Process(target=parallel,args=(str(i+1),)) #创建线程
         thread_list.append(t)
         t.start()  #启动线程
