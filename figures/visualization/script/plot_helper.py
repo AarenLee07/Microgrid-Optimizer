@@ -31,6 +31,7 @@ color_dic_glb={
         'MPC-GT':'seagreen',# aquamarine
         'MPC-Prediction':'navy',
         'MPC-Heuristic':'steelblue',
+        'MPC-Heuristic-our-method':'purple',
         'MPC-Naive':'slategray',
         'MSC-GT':'orangered', #green
         'MPC-Disturbance':'purple',
@@ -41,6 +42,7 @@ color_dic_glb_w={
         'MPC-Prediction':'w',
         'MPC-Heuristic':'w',
         'MPC-Naive':'w',
+        'MPC-Heuristic-our-method':'w',
         'MSC-GT':'w', #green
         'MPC-Disturbance':'w',
         'MSC-Naive':'w'
@@ -50,6 +52,7 @@ marker_dic_glb_w={
         'MPC-Prediction':'^',
         'MPC-Heuristic':'x',
         'MPC-Naive':'v',
+        'MPC-Heuristic-our-method':'x',
         'MPC-Disturbance':'+',
         'MSC-GT':'_',
         'MSC-Naive':'_'
@@ -61,6 +64,7 @@ marker_dic_glb={
         'MPC-Heuristic':'_',
         'MPC-Naive':'_',
         'MPC-Disturbance':'_',
+        'MPC-Heuristic-our-method':'x',
         'MSC-GT':'_',
         'MSC-Naive':'_'
     }
@@ -117,6 +121,7 @@ def pre_process(df,key,duration_key):
     df=df[['strategy','pred_model',duration_key,key]]
     df=df.replace('optimal',"MPC")
     df=df.replace("Simple","Heuristic")
+    df=df.replace("Simple-our-method","Heuristic-our-method")
     df['label']=df['strategy']+'-'+df['pred_model']
     data=dict()
     
@@ -256,7 +261,7 @@ def plot_valid(df,relative,limit,figsize,save_fn,key,fontsize,duration_key):
         
     plt.show()
     
-def plot_origin_valid_bar(df,relative,limit,figsize,key,save_fn,fontsize,
+def plot_origin_valid_bar(df,relative,limit,figsize,key,save_fn,fontsize,bbox_to_anchor,
                           notes_y=-40,duration_key='week_of_year',show_notes=False):
     if relative:
         new_key='relative_'+key
@@ -319,7 +324,7 @@ def plot_origin_valid_bar(df,relative,limit,figsize,key,save_fn,fontsize,
             bottom=y_coor_MPC_GT[0],color='seagreen',
             width=0.6,alpha=0.1,label="MPC_GT")
             
-    ax.legend(loc='upper left',bbox_to_anchor=(1.02,1),fontsize=fontsize)
+    ax.legend(loc='upper left',bbox_to_anchor=bbox_to_anchor,fontsize=fontsize)
         
     
     ax.set_xlabel(duration_key+" 2019",fontsize=fontsize*1.5)
@@ -456,7 +461,7 @@ def mplot_origin_valid_bar(params):
         if i==0:
             axs[i].set_ylabel("Relative "*relative+key+" (Percentage)"*relative+"(US dollar/day)"*(not relative),fontsize=fontsize*1.5)
     
-    leg = plt.legend(loc='upper right', bbox_to_anchor=(1.5, 1), fontsize=fontsize)
+    leg = plt.legend(loc='upper right', bbox_to_anchor=params["bbox_to_anchor"], fontsize=fontsize)
     if is_gradient:
         for handle in leg.legendHandles:
             handle.set_color('black')

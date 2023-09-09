@@ -14,13 +14,13 @@ log_folder=r'L:\Coding_project\Energy_grid_new_exp_local'
 #log_folder=r'D:\Codes\Energy_grid_new_exp_local'
 
 
-exp_suffix = "thesis_track_p_grid"
+exp_suffix = "thesis_value_of_information"
 exp_folder = os.path.join(out_path, "experiments", exp_suffix)
 debug_folder = os.path.join(out_path, "debug_test")
 assert os.path.exists(exp_folder)
-log_fn = os.path.join(exp_folder, "6h-bat-Oct-track-p-grid.xlsx")#_oneday_12months
+log_fn = os.path.join(exp_folder, "6h-bat-Oct-disturbance-type.xlsx")#_oneday_12months
 
-save_path = os.path.join(log_folder,exp_suffix, "6h-bat-Oct-track-p-grid")
+save_path = os.path.join(log_folder,exp_suffix, "6h-bat-Oct-disturbance-type")
 if not os.path.exists(save_path):
     os.makedirs(save_path)
 assert os.path.exists(save_path)
@@ -28,7 +28,7 @@ assert os.path.exists(save_path)
 def parallel(fork_id):
     class MPC_parallel(exp.MPC_ExperimentManager):
         None
-    for i in range(15):
+    for i in range(3):
         try:
             em = MPC_parallel(log_fn=log_fn, save_path=save_path, save=True, exp_prefix="MPC")
             var_keys = [
@@ -39,9 +39,9 @@ def parallel(fork_id):
                         "B_kWh",  "deg_model", 
                         "start", "end", 
                         "bld", "ev", "pv",
-                        #"disturbance_rule", "disturbance_scale","shift","shift_ratio"
+                        # "disturbance_rule", "disturbance_scale",#"shift","shift_ratio"
                         "p_grid_max_method",]
-            em.run(keys=var_keys, num_trials=10, fork_id=fork_id)
+            em.run(keys=var_keys, num_trials=1, fork_id=fork_id)
         except Exception as e:
             print('Reason_out:', e)  
             print('Failed in '+str(i)+'nd trial')

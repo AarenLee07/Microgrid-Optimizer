@@ -440,7 +440,8 @@ class MPC_op():
                 elif self.op_params['p_grid_max_method']=='minimize_cap':
                     if p_grid_exe_prev_max>max(sol_last_step):
                         dc_prev_max = min(p_grid_exe_prev_max,max(sol_last_step))
-                    dc_prev_max=p_grid_exe_prev_max
+                    else:
+                        dc_prev_max=p_grid_exe_prev_max
                 elif self.op_params['p_grid_max_method']=='zero':
                     dc_prev_max=0
                 elif self.op_params['p_grid_max_method']=='by_execution':
