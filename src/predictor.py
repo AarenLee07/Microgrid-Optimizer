@@ -31,12 +31,13 @@ from datetime import datetime, timedelta
 
 class Predictor():
 
-    def __init__(self, data_pool, data_pool_xgb=None, shortcut = None, shift=None,shift_ratio=0,
+    def __init__(self, data_pool, data_pool_xgb=None, shortcut = None, shift=None,shift_ratio=0,delta=0.25,
                  bld=None, pv=None, ev=None, price_buy=None, price_sell=None,
                  bld_kws=None, pv_kws=None, ev_kws=None, price_buy_kws=None, price_sell_kws=None):
 
         self.data_pool = data_pool
         self.data_pool_xgb = data_pool_xgb
+        #self.data_pool_noise=None
         
         self.set_predictor(shortcut=shortcut,shift=shift,shift_ratio=shift_ratio,
                  bld=bld, pv=pv, ev=ev, price_buy=price_buy, price_sell=price_sell,
@@ -72,16 +73,16 @@ class Predictor():
                 },
             "Simple": {
                 "bld": Predictor_load_Simple, "bld_kws": {"rule": "week", "num": 4, "exp_alpha": 0.1},#"bld": Predictor_load_GT, "bld_kws": None,
-                "pv": Predictor_load_GT, "pv_kws": None,# Predictor_load_Simple, "pv_kws": {"rule": "day", "num": 3, "exp_alpha": 0.1},
-                "ev": Predictor_ev_GT, "ev_kws": None,
-                #"ev": Predictor_ev_Simple, "ev_kws": {"rule": "week", "num": 1},
+                "pv":  Predictor_load_Simple, "pv_kws": {"rule": "day", "num": 3, "exp_alpha": 0.1},
+                #"ev": Predictor_ev_GT, "ev_kws": None,
+                "ev": Predictor_ev_Simple, "ev_kws": {"rule": "week", "num": 1},
                 "price_buy": Predictor_tou_SDGE_DA, "price_buy_kws": None,
                 "price_sell": None, "price_sell_kws": None
                 },
             # all naive as the lower bound
             "Naive": {
                 "bld": Predictor_load_Simple, "bld_kws": {"rule": "naive"},#"bld": Predictor_load_GT, "bld_kws": None,
-                "pv": Predictor_load_GT, "pv_kws": None, # Predictor_load_Simple, "pv_kws": {"rule": "naive"},
+                "pv":  Predictor_load_Simple, "pv_kws": {"rule": "naive"},
                 "ev": Predictor_ev_GT, "ev_kws": None, # Predictor_ev_Simple, "ev_kws": {"rule": "naive"},
                 "price_buy": Predictor_tou_SDGE_DA, "price_buy_kws": None,
                 "price_sell": None, "price_sell_kws": None
@@ -184,17 +185,20 @@ class Predictor():
 
 
 class Load_Predictor():
-    def __init__(self, data_pool):
+    
+    def __init__(self, data_pool, delta=0.25):
         self.data_pool = data_pool
+        #self.data_pool_noise = None
     def get_prediction(self, **kw):
         pass
 
 # [Yi, 2023/03/03] combine bld & pv predictor
 class Predictor_load_GT(Load_Predictor):
-    def __init__(self, data_pool, load_type):
-        super().__init__(data_pool)
+    def __init__(self, data_pool, load_type,delta=0.25):
+        super().__init__(data_pool,delta=0.25)
         assert load_type in ["bld", "pv"]
         self.load_type = load_type
+        #self.data_pool_noise=None
         
     def get_prediction(self, t, K, delta):
         # [Yi, 2022/12/22]: .loc with datetime is closed both sides
@@ -206,20 +210,69 @@ class Predictor_load_GT(Load_Predictor):
     
 # [Lunlong, 2023/08/21] add predictor of random noise
 class Predictor_load_Noise(Predictor_load_GT):
-    def __init__(self, data_pool, load_type, rule, **rule_kws):
-        super().__init__(data_pool, load_type)
-        self.rule = rule    # suggest: bld: "week"; pv: "day"
+
+    def __init__(self, data_pool, load_type, rule, delta=0.25, **rule_kws):
+        super().__init__(data_pool, load_type, delta=0.25)
+        self.rule = rule    
         self.loc = rule_kws.get("loc", 0.0)   # suggest: 0
         self.scale = rule_kws.get("scale", 0.03)    # suggest: 0.03
+        self.delta = delta   # suggest: 0.03
+        # to cal the noise_table at once
+        # in order to avoid the inconsistency when the duration of loaded data changed,
+        #   cal the table longer than needed
+        
+        if self.scale>0.5:
+            raise Warning("self.scale higher than 0.5, may lead to infasiblility")
+        # Define the start and end timestamps
+        ta = pd.Timestamp('2018-01-01 00:00:00')
+        td = pd.Timestamp('2021-01-02 00:00:00')
+        # fix the random seed
+        np.random.seed(42)
+        # Generate the timestamps with gaps
+        timestamps = pd.date_range(start=ta, end=td, freq=f'{self.delta}H')
+        # Generate random noises
+        if self.rule in ["normal","normal_pos","normal_neg"]:
+            noises = np.random.normal(loc=0, scale=0.1, size=len(timestamps))
+        elif self.rule in ["uniform","uniform_pos","uniform_neg"]:
+            noises = np.random.uniform(low=-1, high=1, size=len(timestamps))
+        else:
+            raise Warning("invalid disturbance rule")
+        # scale the noise
+        absolute_average = np.mean(np.abs(noises))
+        adjustment_factor = self.scale / absolute_average
+        noises=noises*adjustment_factor
+        # cut down coef exceeding the range
+        np.clip(noises,-1.0,1.0)
+        # adjust the noise distribution according to the rule
+        if self.rule in ["normal_pos","uniform_pos"]:
+            noises=abs(noises)
+        elif self.rule in ["normal_neg","uniform_neg"]:
+            noises=-abs(noises)
+        noise_series = pd.Series(data=noises, index=timestamps)
+        
+        tstart=min(self.data_pool.data[f"load_{self.load_type}"].index)
+        tend=max(self.data_pool.data[f"load_{self.load_type}"].index)
+        
+        pred_ref=self.data_pool.data[f"load_{self.load_type}"]
+        noise_ref=noise_series.loc[tstart:tend]
+        assert len(noise_ref)==len(pred_ref)
+        
+        #self.data_pool=pred_ref.copy()
+        self.data_pool.data[f"load_{self.load_type}_noise"]=\
+            self.data_pool.data[f"load_{self.load_type}"]+self.data_pool.data[f"load_{self.load_type}"]*noise_ref
+
+        
+        
+        
 
     def get_prediction(self, t, K, delta):
         
         if self.rule not in ["normal","normal_pos","normal_neg","uniform","uniform_pos","uniform_neg"]:
             raise Exception("Noise generating rule not implemented: ",self.rule)
         
-        pred_ref=self.data_pool.data[f"load_{self.load_type}"].loc[t:t+timedelta(hours=(K-1)*delta)]
-        assert len(pred_ref) == K
-        
+        pred=self.data_pool.data[f"load_{self.load_type}_noise"].loc[t:t+timedelta(hours=(K-1)*delta)]
+        assert len(pred) == K
+        '''
         if self.scale>0.5:
             raise Warning("self.scale higher than 0.5, may lead to infasiblility")
         
@@ -251,10 +304,7 @@ class Predictor_load_Noise(Predictor_load_GT):
         elif self.rule == "uniform_neg":
             coef=np.random.uniform(low=self.scale*(-2), high=0, size=len(pred_ref))
             pred=pred_ref*coef+pred_ref
-        
-        
-        coef_mean=np.mean(coef)
-        coef_mean_abs=np.mean(abs(coef))
+        '''
         
         return pred
 
@@ -357,8 +407,8 @@ def find_dates(t, K, delta, rule, num, ev=False):
 
 
 class Predictor_load_Simple(Predictor_load_GT):
-    def __init__(self, data_pool, load_type, rule, **rule_kws):
-        super().__init__(data_pool, load_type)
+    def __init__(self, data_pool, load_type, rule, delta=0.25, **rule_kws):
+        super().__init__(data_pool, load_type, delta=0.25)
         self.rule = rule    # suggest: bld: "week"; pv: "day"
         self.num = rule_kws.get("num", 1)   # suggest: bld: 1, pv: 3
         self.exp_alpha = rule_kws.get("exp_alpha", None)    # suggest: 0.1
@@ -397,8 +447,8 @@ class Predictor_load_Simple(Predictor_load_GT):
 
 
 class Predictor_load_Simple_shift(Predictor_load_GT):
-    def __init__(self, data_pool, load_type, rule, **rule_kws):
-        super().__init__(data_pool, load_type)
+    def __init__(self, data_pool, load_type, rule, delta=0.25, **rule_kws):
+        super().__init__(data_pool, load_type, delta=0.25)
         self.rule = rule    # suggest: bld: "week"; pv: "day"
         self.num = rule_kws.get("num", 1)   # suggest: bld: 1, pv: 3
         self.exp_alpha = rule_kws.get("exp_alpha", None)    # suggest: 0.1
@@ -441,7 +491,7 @@ class Predictor_load_Simple_shift(Predictor_load_GT):
 
     # [Lunlong 2023/08/18] fix a bug here 
 class Predictor_load_XGBoost(Load_Predictor):
-    def __init__(self,data_pool,load_type,**kw):
+    def __init__(self,data_pool,load_type, delta=0.25,**kw):
         assert load_type in ["bld", "pv"]
         self.load_type = load_type
         self.data_pool_xgb=kw["data_pool_xgb"]
@@ -477,7 +527,7 @@ class Predictor_load_XGBoost(Load_Predictor):
         return pred_flatten
     '''
 class Predictor_load_XGBoost_shift(Load_Predictor):
-    def __init__(self,data_pool,load_type,**kw):
+    def __init__(self,data_pool,load_type, delta=0.25, **kw):
         assert load_type in ["bld", "pv"]
         self.load_type = load_type
         self.data_pool_xgb=kw["data_pool_xgb"]
@@ -489,8 +539,8 @@ class Predictor_load_XGBoost_shift(Load_Predictor):
         return pred
     
 class Predictor_ev_Simple(Predictor_ev_GT):
-    def __init__(self, data_pool, rule, **rule_kws):
-        super().__init__(data_pool)
+    def __init__(self, data_pool, rule, delta=0.25, **rule_kws):
+        super().__init__(data_pool, delta=0.25)
         self.rule = rule    # suggest: ev: "week"
         self.num = rule_kws.get("num", 1)   # suggest: ev: 1
     

@@ -162,9 +162,9 @@ class MPC_ExperimentManager(ExperimentManager):
                 "loc":0,
                 "scale":op_params["disturbance_scale"],
             }
-            mpc.init_predictor(shortcut=pred_model, bld_kws=bld_kws,shift=op_params["shift"],shift_ratio=op_params["shift_ratio"])
+            mpc.init_predictor(shortcut=pred_model, bld_kws=bld_kws,shift=op_params["shift"],shift_ratio=op_params["shift_ratio"],delta=0.25)
         else:
-            mpc.init_predictor(shortcut=pred_model, bld_kws=None,shift=op_params["shift"],shift_ratio=op_params["shift_ratio"])
+            mpc.init_predictor(shortcut=pred_model, bld_kws=None,shift=op_params["shift"],shift_ratio=op_params["shift_ratio"],delta=0.25)
 
         # Step 6: initialize save_config
         mpc.init_save_config(save_fn=save_fn[:-5],  # FIXME: remove ".xlsx"
