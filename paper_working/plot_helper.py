@@ -67,7 +67,7 @@ def get_merged_df(file_folder=None,log_fn=None,id_exe_unne=None, id_sol_nece=Non
     return df_merged
 
 def plot_track_p_max(df_merged,figsize,line_keys=['actual_p_max','necessary','unnecessary'],linewidth=1,
-                     plot_error_bar=False, ylimit_main=[-150,250],ylimit_sub=[-150,250],fontsize=12,
+                     plot_error_bar=False, ylimit_main=[-150,250],ylimit_sub=[-150,250],
                      inside_start_day=5,inside_days=1,legend_loc="lower right",
                      save_fn=None,ax=None,axins=None):
         line_clr_dic={
