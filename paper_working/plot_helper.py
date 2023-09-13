@@ -782,7 +782,9 @@ def mplot_origin_valid_bar(params):
             print(range(len(arrawx)))
             for k in range(len(arrawx)):
                 axs[i].arrow(arrawx[k], arrowy_s[k], 0, (arrowy_e[k]-arrowy_s[k])*0.9,
-                            width=0.005,color='dimgray',alpha=0.4,head_width=0.02)
+                            width=0.005,color='dimgray',alpha=0.4,head_width=0.2,head_length=0.2,
+                            length_includes_head=True,
+                            linestyle='dashed')
 
         group=np.array(df['label'])
         if params["show_line"]:
