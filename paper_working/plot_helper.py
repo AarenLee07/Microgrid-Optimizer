@@ -136,7 +136,8 @@ def plot_track_p_max(df_merged,figsize,line_keys=['actual_p_max','necessary','un
         for loc in ['top','bottom','left','right']:
                 axins.spines[loc].set_color(axin_color)  
         axins.tick_params(axis='both',which='major',labelsize=ticklabel_fs)
-
+        axins.tick_params(direction='out',axis='y')
+        axins.tick_params(direction='in',axis='x')
         # draw frame in the ori plot
         tx0 = xlim0
         tx1 = xlim1
@@ -158,7 +159,7 @@ def plot_track_p_max(df_merged,figsize,line_keys=['actual_p_max','necessary','un
         con = ConnectionPatch(xyA=xy2,xyB=xy,coordsA="data",coordsB="data",color=axin_color,
                 axesA=axins,axesB=ax,linestyle="--",linewidth=0.5)
         axins.add_artist(con)
-
+        ax.tick_params(direction='out',axis='y')
         # adjust layout and save fig
         if ax==None:
             plt.tight_layout()
