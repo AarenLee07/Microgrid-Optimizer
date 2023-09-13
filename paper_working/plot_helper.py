@@ -32,6 +32,15 @@ label_fs=12
 ticklabel_fs=9
 title_fs=14
 
+rc_={
+    "figure.dpi":600,
+    "font.size":10,
+    "axes.facecolor":"white",
+    "savefig.facecolor":"white",
+    "text.usetex":True,
+    "legend.frameon":False
+}
+
 def get_merged_df(file_folder=None,log_fn=None,id_exe_unne=None, id_sol_nece=None, id_mini=None):
     log_df=pd.read_excel(log_fn,sheet_name="Sheet1")
     fn_by_exe=log_df[log_df.id==id_exe_unne]["save_fn"].values[0]
@@ -90,7 +99,7 @@ def plot_track_p_max(df_merged,figsize,line_keys=['actual_p_max','necessary','un
 
         ax.set_ylim(ylimit_main)
         ax.set_xlabel("Day of month(May-2019)",fontsize=label_fs,loc='left')
-        ax.set_ylabel("P_grid (kW)",fontsize=label_fs)
+        ax.set_ylabel("Latest max $p^{DC}$ (kW)",fontsize=label_fs)
         ax.xaxis.set_major_formatter(mdates.DateFormatter('%d'))
         ax.xaxis.set_major_locator(mdates.HourLocator(interval=24*7))
         ax.xaxis.set_minor_locator(mdates.HourLocator(interval=24))
@@ -731,6 +740,10 @@ def mplot_origin_valid_bar(params):
         duration_key=params["subplots"][i]["duration_key"]
         subtitle=params["subplots"][i]["subtitle"]
         is_gradient=params["subplots"][i]["gradient"]
+        plot_arrow=params["subplots"][i]["plot_arrow"]
+        if plot_arrow==True:
+            arrow_end=params["subplots"][i]["arrow_end"]
+            arrow_start=params["subplots"][i]["arrow_start"]
         i=int(i)
         
         if is_gradient:
@@ -750,17 +763,26 @@ def mplot_origin_valid_bar(params):
             
         if relative:
             new_key='relative_'+key
+            arrow_start='relative_'+arrow_start
+            arrow_end='relative_'+arrow_end
         else:
             new_key=key
         df_valid=df#.drop(df[df.is_valid==False].index)
 
-
-        
         axs[i].grid(axis = 'x',linestyle='--',alpha=0.1)
         axs[i].grid(axis = 'y',linestyle='--',alpha=0.8)
         
         scatter_x=np.array(df[duration_key])
         scatter_y=np.array(df[new_key])
+        
+        if plot_arrow==True:
+            arrawx=np.array(df_valid[df_valid.label==arrow_start][duration_key])
+            arrowy_s=np.array(df_valid[df_valid.label==arrow_start][new_key])
+            arrowy_e=np.array(df_valid[df_valid.label==arrow_end][new_key])
+            print(range(len(arrawx)))
+            for k in range(len(arrawx)):
+                axs[i].arrow(arrawx[k], arrowy_s[k], 0, arrowy_e[k]-arrowy_s[k],
+                            width=0.01,color='dimgray')
 
         group=np.array(df['label'])
         if params["show_line"]:
@@ -782,8 +804,6 @@ def mplot_origin_valid_bar(params):
         else:
             axs[i].set_xticks(ticks=scatter_x)
             axs[i].set_xticklabels(labels=scatter_x,fontsize=ticklabel_fs,rotation=0)
-        
-        
         
         if is_gradient:
             for g in np.unique(group):
@@ -826,11 +846,15 @@ def mplot_origin_valid_bar(params):
         else:
             axs[i].set_xlabel(duration_key,fontsize=label_fs)
         axs[i].set_title(subtitle,fontsize=title_fs)
+        if key=='demand_charge':
+            key="$\textit{demand charge)$"
         if (i==0)&(params["save_fn"]==None):
-            axs[i].set_ylabel("Relative "*relative+key+" (Percentage)"*relative+"(US dollar/day)"*(not relative),fontsize=label_fs)
+            axs[i].set_ylabel("Relative "*relative+key+" (Percentage)"*relative+"(\$/day)"*(not relative),fontsize=label_fs)
         else:
-            axs[i].set_ylabel("Relative "*relative+key+" (Percentage)"*relative+"(US dollar/day)"*(not relative),fontsize=label_fs)
+            axs[i].set_ylabel("Relative "*relative+key+" (Percentage)"*relative+"(\$/day)"*(not relative),fontsize=label_fs)
         axs[i].tick_params(axis='both',which='major',labelsize=ticklabel_fs)
+        
+        
 
         
     if relative*params["show_notes"]:

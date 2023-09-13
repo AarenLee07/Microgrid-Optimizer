@@ -17,9 +17,9 @@ exp_suffix = "thesis_value_of_information"
 exp_folder = os.path.join(out_path, "experiments", exp_suffix)
 debug_folder = os.path.join(out_path, "debug_test")
 assert os.path.exists(exp_folder)
-log_fn = os.path.join(exp_folder, "6h-bat-12months-compare.xlsx")#_oneday_12months
+log_fn = os.path.join(exp_folder, "6h-bat-12months-dc-compare.xlsx")#_oneday_12months
 
-save_path = os.path.join(log_folder,exp_suffix, "6h-bat-12months-compare")
+save_path = os.path.join(log_folder,exp_suffix, "6h-bat-dc-12months-compare")
 if not os.path.exists(save_path):
     os.makedirs(save_path)
 assert os.path.exists(save_path)
