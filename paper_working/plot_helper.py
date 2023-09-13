@@ -781,8 +781,8 @@ def mplot_origin_valid_bar(params):
             arrowy_e=np.array(df_valid[df_valid.label==arrow_end][new_key])
             print(range(len(arrawx)))
             for k in range(len(arrawx)):
-                axs[i].arrow(arrawx[k], arrowy_s[k], 0, arrowy_e[k]-arrowy_s[k],
-                            width=0.01,color='dimgray')
+                axs[i].arrow(arrawx[k], arrowy_s[k], 0, (arrowy_e[k]-arrowy_s[k])*0.9,
+                            width=0.005,color='dimgray',alpha=0.4,head_width=0.02)
 
         group=np.array(df['label'])
         if params["show_line"]:
