@@ -91,7 +91,7 @@ def plot_track_p_max(df_merged,figsize,line_keys=['actual_p_max','necessary','un
                 ax.yaxis.set_major_formatter(lambda x, pos: f'{abs(x):g}')
                 ax.margins(x=0.01)
                 ax.hlines(y=0,xmin=df_merged.index[0],xmax=df_merged.index[-1],linestyles='--',colors='gray',linewidth=1)
-                ax.tick_params(axis='both', direction='in',pad=10)
+                ax.tick_params(axis='both', direction='in')
                 ax.set_xticklabels(ax.get_xticklabels(),rotation=0,fontsize=ticklabel_fs)
                 ax.tick_params(axis='both',which='major',labelsize=ticklabel_fs)
 
@@ -782,9 +782,8 @@ def mplot_origin_valid_bar(params):
             print(range(len(arrawx)))
             for k in range(len(arrawx)):
                 axs[i].arrow(arrawx[k], arrowy_s[k], 0, (arrowy_e[k]-arrowy_s[k])*0.9,
-                            width=0.005,color='dimgray',alpha=0.4,head_width=0.2,head_length=0.2,
-                            length_includes_head=True,
-                            linestyle='dashed')
+                            width=0.005,color='dimgray',alpha=0.4,head_width=0.4,head_length=3,
+                            length_includes_head=True)
 
         group=np.array(df['label'])
         if params["show_line"]:
@@ -844,17 +843,18 @@ def mplot_origin_valid_bar(params):
                 width=0.6,alpha=0.1,label="MPC_GT")
             
         if duration_key=='month_of_year':
-            axs[i].set_xlabel("Month of year(2019)",fontsize=label_fs)
+            axs[i].set_xlabel("Month of year(2019)",fontsize=label_fs,loc='left')
         else:
-            axs[i].set_xlabel(duration_key,fontsize=label_fs)
+            axs[i].set_xlabel(duration_key,fontsize=label_fs,loc='left')
         axs[i].set_title(subtitle,fontsize=title_fs)
         if key=='demand_charge':
-            key="$\textit{demand charge)$"
+            key="demand charge"
         if (i==0)&(params["save_fn"]==None):
             axs[i].set_ylabel("Relative "*relative+key+" (Percentage)"*relative+"(\$/day)"*(not relative),fontsize=label_fs)
         else:
             axs[i].set_ylabel("Relative "*relative+key+" (Percentage)"*relative+"(\$/day)"*(not relative),fontsize=label_fs)
         axs[i].tick_params(axis='both',which='major',labelsize=ticklabel_fs)
+        axs[i].tick_params(axis='x',direction="in")
         
         
 
