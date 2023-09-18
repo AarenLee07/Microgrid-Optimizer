@@ -216,6 +216,7 @@ class Predictor_load_Noise(Predictor_load_GT):
         self.rule = rule    
         self.loc = rule_kws.get("loc", 0.0)   # suggest: 0
         self.scale = rule_kws.get("scale", 0.03)    # suggest: 0.03
+        self.hourly_sign_uniform = rule_kws.get("hourly_sign_uniform",True)
         self.delta = delta   # suggest: 0.03
         # to cal the noise_table at once
         # in order to avoid the inconsistency when the duration of loaded data changed,
@@ -250,6 +251,29 @@ class Predictor_load_Noise(Predictor_load_GT):
             noises=-abs(noises)
         noise_series = pd.Series(data=noises, index=timestamps)
         
+        # [Lunlong, 2023/09/18] add new constraint to the U series, keeping the sign of the noise the 
+        #       same within the same hour
+        #   This is implemented in an easy way:
+        #       When hour is odd, sign is negative, while even and positive
+        def sign_uniform_hour(x, **kwargs):
+            time_index=x.index
+            hour=time_index.hour
+            if hour%2==1:
+                uniformed_x=abs(x)*-1
+            else:
+                uniformed_x=abs(x)
+            return uniformed_x
+        
+        if self.rule in ['normal','uniform'] and self.hourly_sign_uniform==True:
+            #noise_series=noise_series.apply(sign_uniform_hour)
+            noise_series_df=pd.DataFrame(noise_series)
+            noise_series_df.index=pd.to_datetime(noise_series_df.index)
+            noise_series_df["hour"]=timestamps.hour
+            print(noise_series_df.info())
+            #noise_series_df=noise_series_df.apply(sign_uniform_hour,axis=0)
+            noise_series_df.loc[:,0]=noise_series_df.apply(lambda x: abs(x[0])*-1 if x['hour']%2==1 else abs(x[0]),axis=1)
+            noise_series=noise_series_df.loc[:,0]
+        
         tstart=min(self.data_pool.data[f"load_{self.load_type}"].index)
         tend=max(self.data_pool.data[f"load_{self.load_type}"].index)
         
@@ -262,9 +286,6 @@ class Predictor_load_Noise(Predictor_load_GT):
             self.data_pool.data[f"load_{self.load_type}"]+self.data_pool.data[f"load_{self.load_type}"]*noise_ref
 
         
-        
-        
-
     def get_prediction(self, t, K, delta):
         
         if self.rule not in ["normal","normal_pos","normal_neg","uniform","uniform_pos","uniform_neg"]:

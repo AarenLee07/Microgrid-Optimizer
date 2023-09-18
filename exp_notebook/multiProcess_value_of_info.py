@@ -10,16 +10,16 @@ data_path = sys.path[0].replace("exp_notebook", "data")
 if src_path not in sys.path:
     sys.path.append(src_path)
 out_path = sys.path[0].replace("exp_notebook", "output")
-log_folder=r'L:\Coding_project\Energy_grid_new_exp_local'
-
+#log_folder=r'L:\Coding_project\Energy_grid_new_exp_local'
+log_folder=r'D:\Codes\Energy_grid_new_exp_local'
 
 exp_suffix = "thesis_value_of_information"
 exp_folder = os.path.join(out_path, "experiments", exp_suffix)
 debug_folder = os.path.join(out_path, "debug_test")
 assert os.path.exists(exp_folder)
-log_fn = os.path.join(exp_folder, "6h-bat-Mar-disturbance-type.xlsx")#_oneday_12months
+log_fn = os.path.join(exp_folder, "6h-bat-May-disturbance-type-for-debug.xlsx")#_oneday_12months
 
-save_path = os.path.join(log_folder,exp_suffix, "6h-bat-Mar-disturbance-type")
+save_path = os.path.join(log_folder,exp_suffix, "6h-bat-May-disturbance-type-for-debug")
 if not os.path.exists(save_path):
     os.makedirs(save_path)
 assert os.path.exists(save_path)
@@ -49,7 +49,7 @@ def parallel(fork_id):
 if __name__ == '__main__':     
     thread_list= list()
     freeze_support()
-    for i in range(2):
+    for i in range(1):
         t=Process(target=parallel,args=(str(i+1),)) #创建线程
         thread_list.append(t)
         t.start()  #启动线程
