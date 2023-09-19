@@ -68,7 +68,7 @@ def get_merged_df(file_folder=None,log_fn=None,id_exe_unne=None, id_sol_nece=Non
 
 def plot_track_p_max(df_merged,figsize,line_keys=['actual_p_max','necessary','unnecessary'],linewidth=1,
                      plot_error_bar=False, ylimit_main=[-150,250],ylimit_sub=[-150,250],
-                     inside_start_day=5,inside_days=1,legend_loc="lower right",
+                     inside_start_day=5,inside_days=1,legend_loc="lower right",track_real=False,shadow=False,
                      save_fn=None,ax=None,axins=None):
         line_clr_dic={
                 'actual_p_max':'teal',
@@ -76,7 +76,7 @@ def plot_track_p_max(df_merged,figsize,line_keys=['actual_p_max','necessary','un
                 'unnecessary':'coral',
                 'unnecessary_minimized':'purple'
         }
-        axin_color='darkblue'
+        axin_color='steelblue'
         
         if ax==None:
             fig, ax = plt.subplots(figsize=figsize)
@@ -84,34 +84,44 @@ def plot_track_p_max(df_merged,figsize,line_keys=['actual_p_max','necessary','un
             ax=ax
 
         def plot_ax_data(ax):
-                for key in line_keys:
-                        ax.plot(df_merged.index, df_merged[key],label=key,color=line_clr_dic[key],linewidth=linewidth)
-                if plot_error_bar:
-                        ax.bar(df_merged.index, df_merged["load_pred_error"])
-                ax.yaxis.set_major_formatter(lambda x, pos: f'{abs(x):g}')
-                ax.margins(x=0.01)
-                ax.hlines(y=0,xmin=df_merged.index[0],xmax=df_merged.index[-1],linestyles='--',colors='gray',linewidth=1)
-                ax.tick_params(axis='both', direction='in')
-                ax.set_xticklabels(ax.get_xticklabels(),rotation=0,fontsize=ticklabel_fs)
-                ax.tick_params(axis='both',which='major',labelsize=ticklabel_fs)
+            for key in line_keys:
+                if key=='unnecessary' and shadow==False:
+                    ax.plot(df_merged.index, df_merged[key],label=key,color=line_clr_dic[key],linewidth=linewidth)
+                elif key=='unnecessary' and shadow==True:
+                    ax.fill_between(df_merged.index,0,df_merged[key],facecolor='orange',alpha=0.3)
+                else :
+                    ax.plot(df_merged.index, df_merged[key],label=key,color=line_clr_dic[key],linewidth=linewidth)
+            if plot_error_bar:
+                ax.bar(df_merged.index, df_merged["load_pred_error"])
+            ax.yaxis.set_major_formatter(lambda x, pos: f'{abs(x):g}')
+            ax.margins(x=0.01)
+            ax.hlines(y=0,xmin=df_merged.index[0],xmax=df_merged.index[-1],linestyles='--',colors='gray',linewidth=0.6,alpha=0.6)
+            ax.tick_params(axis='both', direction='in')
+            ax.set_xticklabels(ax.get_xticklabels(),rotation=0,fontsize=ticklabel_fs)
+            ax.tick_params(axis='both',which='major',labelsize=ticklabel_fs)
 
         plot_ax_data(ax=ax)
-
+        ax.text(x=0.7,y=0.76,s='$necessary$',ha='center',va='center',transform=ax.transAxes,color='darkgreen')
+        ax.text(x=0.7,y=0.28,s='$track\_real$',ha='center',va='center',transform=ax.transAxes,color='peru')
+        if track_real==True:
+            ax.text(x=0.7,y=0.5,s='$unnecessary$',ha='center',va='center',transform=ax.transAxes,color='purple')
         ax.set_ylim(ylimit_main)
-        ax.set_xlabel("Day of month(May-2019)",fontsize=label_fs,loc='left')
-        ax.set_ylabel("Latest max $p^{DC}$ (kW)",fontsize=label_fs)
+        ax.set_xlabel("Day of month (May-2019)",fontsize=label_fs,loc='center')
+        ax.set_ylabel("Peak demand till $t$ (kW)",fontsize=label_fs)
         ax.xaxis.set_major_formatter(mdates.DateFormatter('%d'))
         ax.xaxis.set_major_locator(mdates.HourLocator(interval=24*7))
         ax.xaxis.set_minor_locator(mdates.HourLocator(interval=24))
         ax.tick_params(axis='x', rotation=0)
 
         ax.set_xticklabels(ax.get_xticklabels(),rotation=0,fontsize=ticklabel_fs)
-        ax.legend(frameon=False,loc=legend_loc,fontsize=legend_fs)
+        #ax.legend(frameon=False,loc=legend_loc,fontsize=legend_fs)
         ax.tick_params(axis='both',which='major',labelsize=ticklabel_fs)
+        
+        
         # set the subplot:
         if axins==None:
             axins = inset_axes(ax, width="60%", height="100%", loc='lower left',
-                            bbox_to_anchor=(1.03, -0.022, 1, 1), 
+                            bbox_to_anchor=(1.05, -0.031, 1, 1), 
                             bbox_transform=ax.transAxes)
         else:
             axins=axins
@@ -132,7 +142,7 @@ def plot_track_p_max(df_merged,figsize,line_keys=['actual_p_max','necessary','un
         axins.xaxis.set_minor_locator(mdates.HourLocator(interval=1))
         #axins.set_xticklabels(axins.get_xticklabels(),rotation=0)
         axins.set_yticklabels([])
-        axins.set_xlabel("Hour of day (1-May)",fontsize=label_fs,loc='left')
+        axins.set_xlabel("Hour of day (1-May)",fontsize=label_fs,loc='center')
         for loc in ['top','bottom','left','right']:
                 axins.spines[loc].set_color(axin_color)  
         axins.tick_params(axis='both',which='major',labelsize=ticklabel_fs)
@@ -224,9 +234,9 @@ def get_df_for_plot(method,fn_list):
         y_uniform.append(u)
         y_uniform_pos.append(p)
         y_uniform_neg.append(n)
-        y_uniform_mean.append(u.mean())
-        y_uniform_pos_mean.append(p.mean())
-        y_uniform_neg_mean.append(n.mean())
+        y_uniform_mean.append(np.mean(u))
+        y_uniform_pos_mean.append(np.mean(p))
+        y_uniform_neg_mean.append(np.mean(n))
     y_dic={
         'U':y_uniform,
         'U-':y_uniform_neg,
@@ -241,7 +251,7 @@ def get_df_for_plot(method,fn_list):
 
 def cluster_box_plot(figsize,
                      mape,y_dic,mean_dic,ylimit=(-10,180),
-                     mean_dic_old=None,group_plot=False,ax=None,
+                     mean_dic_old=None,ax=None,
                      plot_line_new=True, plot_line_old=False, save_fn=None):
     if plot_line_old==True:
         assert mean_dic_old is not None
@@ -270,11 +280,11 @@ def cluster_box_plot(figsize,
                         "edgecolor": "w",
                         "linewidth": 0,
                         'alpha':0.4},
-                medianprops={"color": color_dic[key], "linewidth": 0.5},
+                medianprops={"color": color_dic[key], "linewidth": 0},
                 meanprops={'marker':'+',
                         'markerfacecolor':color_dic[key],
                         'markeredgecolor':color_dic[key],
-                        'markersize':4*figsize[0]/8},
+                        'markersize':4.1*figsize[0]/8},
                 sym="",showfliers=True, showcaps=False,
                 whiskerprops={'color': 'w', 'linewidth': 1, 'linestyle': '--', 'alpha':0},
                 )
@@ -282,7 +292,7 @@ def cluster_box_plot(figsize,
             lplot=ax.plot(pos_dic[key],mean_dic[key],linestyle='-',color=color_dic[key],alpha=0.2,linewidth=0.5)
         if plot_line_old==True:
             lplot=ax.plot(pos_dic[key],mean_dic_old[key],linestyle='--',marker='+',color=color_dic[key],
-                          alpha=0.5,linewidth=0.5,markersize=4*figsize[0]/8)
+                          alpha=0.5,linewidth=0.8,markersize=0*figsize[0]/8)
         ax.set_xticks([])
         ax.set_xticklabels([])
         boxs.append(bplot['boxes'][0])
@@ -292,16 +302,15 @@ def cluster_box_plot(figsize,
     positions=[]
     minor=[]
     for i in range(len(mape)):
-        labels.append("")
-        minor.append(True)
-        
-        positions.append(positions1[i])
+        #labels.append("")
+        #minor.append(True)
+        #positions.append(positions1[i])
         labels.append(str('%.3g' % mape[i]))
         positions.append(positions2[i])
         minor.append(False)
-        labels.append("")
-        positions.append(positions3[i])
-        minor.append(True)
+        #labels.append("")
+        #positions.append(positions3[i])
+        #minor.append(True)
     ax.set_xticks(ticks=positions,minor=minor,labels=labels,fontsize=ticklabel_fs)
     ax.tick_params(direction='in', axis="x", which='both')
 
@@ -316,7 +325,7 @@ def cluster_box_plot(figsize,
     ax.tick_params(axis='y', labelsize=9)
     ax.tick_params(axis='x', labelsize=9)
     ax.set_xlabel('MAPE(%)',loc='left',fontsize=label_fs)
-    ax.set_ylabel("Relative regret OPEX (%)", fontsize=label_fs)
+    ax.set_ylabel("Relative regret (%)", fontsize=label_fs)
     for i in range(len(positions2)):
         if i%2==0:
             diff=positions2[1]-positions2[0]
@@ -327,17 +336,18 @@ def cluster_box_plot(figsize,
     legend_elements=[]
     for key in color_dic.keys():
         legend_elements.append(Patch(facecolor=color_dic[key], edgecolor='w',label=key,alpha=0.4))
-    if plot_line_new==True:
-        legend_elements.append(Line2D([0], [0], marker='+', color='gray', label='Mean',linewidth=0,
+    #if plot_line_new==True:
+    legend_elements.append(Line2D([0], [0], marker='+', color='gray', label='Mean',linewidth=0,
                                 markerfacecolor='gray', markersize=8))
-        legend_elements.append(Line2D([0], [0], marker='_', color='gray', label='Median',linewidth=0,
-                                markerfacecolor='gray', markersize=8))
+    
+        #legend_elements.append(Line2D([0], [0], marker='+', color='gray', label='Median',linewidth=0,
+                               # markerfacecolor='gray', markersize=0))
     if plot_line_old==True:
-        legend_elements.append(Line2D([0], [0], marker='+', color='gray', label='track real',linewidth=1,linestyle='--',
+        legend_elements.append(Line2D([0], [0], marker='+', color='gray', label='track real',linewidth=0.6,linestyle='--',
                             markerfacecolor='gray', markersize=0))
     
     ax.legend(handles=legend_elements,loc='upper left',fontsize=legend_fs) 
-    ax.set_xlabel("MAPE (Artificial error on builing load)", loc='left',fontsize=label_fs)
+    ax.set_xlabel("MAPE", loc='center',fontsize=label_fs)
     
     if save_fn is not None:
         plt.savefig(save_fn)
@@ -377,7 +387,7 @@ rc_={
 color_dic_glb={
         'MPC-GT':'seagreen',# aquamarine
         'MPC-Prediction':'navy',
-        'MPC-Heuristic':'orangered',
+        'MPC-Heuristic':'peru',
         'MPC-Heuristic-our-method':'purple',
         'MPC-Naive':'slategray',
         'MSC-GT':'gray', #green
@@ -399,7 +409,7 @@ marker_dic_glb_w={
         'MPC-Prediction':'^',
         'MPC-Heuristic':'x',
         'MPC-Naive':'v',
-        'MPC-Heuristic-our-method':'x',
+        'MPC-Heuristic-our-method':'o',
         'MPC-Disturbance':'+',
         'MSC-GT':'_',
         'MSC-Naive':'_'
@@ -411,7 +421,7 @@ marker_dic_glb={
         'MPC-Heuristic':'x',
         'MPC-Naive':'_',
         'MPC-Disturbance':'_',
-        'MPC-Heuristic-our-method':'x',
+        'MPC-Heuristic-our-method':'o',
         'MSC-GT':'_',
         'MSC-Naive':'_'
     }
@@ -485,7 +495,7 @@ def gradient_image(ax, direction=0.3, cmap_range=(0, 1), **kwargs):
 def pre_process(df,key,duration_key):
     df.set_index('id')
     
-    df=df[['strategy','pred_model',duration_key,key]]
+    df=df[['strategy','pred_model',duration_key,key,'days']]
     df=df.replace('optimal',"MPC")
     df=df.replace("Simple","Heuristic")
     df=df.replace("Simple-our-method","Heuristic-our-method")
@@ -536,6 +546,8 @@ def pre_process(df,key,duration_key):
     invalid_duration_list=df[(df[new_key]>100)|(df[new_key]<0)|(df[key].isna())].index
     invalid_duration_list=df.iloc[invalid_duration_list][duration_key].unique()
     df['is_valid']=df[duration_key].apply(lambda x: True if x not in invalid_duration_list else False)
+    if key=='OPEX':
+        df['OPEX']=df['OPEX']*df['days']/1000
     return df
 
 def plot_origin(df,key,relative,save_fn,fontsize,ylimit,duration_key):
@@ -782,8 +794,8 @@ def mplot_origin_valid_bar(params):
             arrowy_e=np.array(df_valid[df_valid.label==arrow_end][new_key])
             print(range(len(arrawx)))
             for k in range(len(arrawx)):
-                axs[i].arrow(arrawx[k], arrowy_s[k], 0, (arrowy_e[k]-arrowy_s[k])*0.9,
-                            width=0.005,color='dimgray',alpha=0.4,head_width=0.4,head_length=3,
+                axs[i].arrow(arrawx[k], arrowy_s[k], 0, (arrowy_e[k]-arrowy_s[k])*0.95,
+                            width=0.005*limit[1]/550,color='dimgray',alpha=0.4,head_width=0.4,head_length=3*limit[1]/550,
                             length_includes_head=True)
 
         group=np.array(df['label'])
@@ -844,16 +856,19 @@ def mplot_origin_valid_bar(params):
                 width=0.6,alpha=0.1,label="MPC_GT")
             
         if duration_key=='month_of_year':
-            axs[i].set_xlabel("Month of year(2019)",fontsize=label_fs,loc='left')
+            axs[i].set_xlabel("Month of year(2019)",fontsize=label_fs,loc='center')
         else:
-            axs[i].set_xlabel(duration_key,fontsize=label_fs,loc='left')
+            axs[i].set_xlabel(duration_key,fontsize=label_fs,loc='center')
         axs[i].set_title(subtitle,fontsize=title_fs)
-        if key=='demand_charge':
-            key="demand charge"
-        if (i==0)&(params["save_fn"]==None):
-            axs[i].set_ylabel("Relative "*relative+key+" (Percentage)"*relative+"(\$/day)"*(not relative),fontsize=label_fs)
-        else:
-            axs[i].set_ylabel("Relative "*relative+key+" (Percentage)"*relative+"(\$/day)"*(not relative),fontsize=label_fs)
+        if key=='grid_max':
+            axs[i].set_ylabel("peak demand (kW)",fontsize=label_fs)
+        if key=='OPEX':
+            axs[i].set_ylabel("OPEX (k\$)",fontsize=label_fs)
+
+        #if (i==0)&(params["save_fn"]==None):
+        #    axs[i].set_ylabel("Relative "*relative+key+" (Percentage)"*relative+"(\$/day)"*(not relative),fontsize=label_fs)
+        #else:
+        #    axs[i].set_ylabel("Relative "*relative+key+" (Percentage)"*relative+"(\$/day)"*(not relative),fontsize=label_fs)
         axs[i].tick_params(axis='both',which='major',labelsize=ticklabel_fs)
         axs[i].tick_params(axis='x',direction="in")
         

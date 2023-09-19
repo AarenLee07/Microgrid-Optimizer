@@ -73,9 +73,10 @@ class Predictor():
                 },
             "Simple": {
                 "bld": Predictor_load_Simple, "bld_kws": {"rule": "week", "num": 4, "exp_alpha": 0.1},#"bld": Predictor_load_GT, "bld_kws": None,
-                "pv":  Predictor_load_Simple, "pv_kws": {"rule": "day", "num": 3, "exp_alpha": 0.1},
-                #"ev": Predictor_ev_GT, "ev_kws": None,
-                "ev": Predictor_ev_Simple, "ev_kws": {"rule": "week", "num": 1},
+                #"pv":  Predictor_load_Simple, "pv_kws": {"rule": "day", "num": 3, "exp_alpha": 0.1},
+                "ev": Predictor_ev_GT, "ev_kws": None,
+                "pv": Predictor_load_GT, "pv_kws": None,
+                #"ev": Predictor_ev_Simple, "ev_kws": {"rule": "week", "num": 1},
                 "price_buy": Predictor_tou_SDGE_DA, "price_buy_kws": None,
                 "price_sell": None, "price_sell_kws": None
                 },
