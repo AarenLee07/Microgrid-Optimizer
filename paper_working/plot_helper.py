@@ -861,7 +861,7 @@ def mplot_origin_valid_bar(params):
             axs[i].set_xlabel(duration_key,fontsize=label_fs,loc='center')
         axs[i].set_title(subtitle,fontsize=title_fs)
         if key=='grid_max':
-            axs[i].set_ylabel("peak demand (kW)",fontsize=label_fs)
+            axs[i].set_ylabel("Peak demand (kW)",fontsize=label_fs)
         if key=='OPEX':
             axs[i].set_ylabel("OPEX (k\$)",fontsize=label_fs)
 

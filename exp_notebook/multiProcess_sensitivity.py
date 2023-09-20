@@ -19,12 +19,12 @@ debug_folder = os.path.join(out_path, "debug_test")
 assert os.path.exists(exp_folder)
 log_fn = os.path.join(exp_folder, "6h-bat-Oct-track-p-grid-2.xlsx")#_oneday_12months
 
-save_path = os.path.join(log_folder,exp_suffix, "6h-bat-Oct-track-p-grid-2")
-if not os.path.exists(save_path):
-    os.makedirs(save_path)
-assert os.path.exists(save_path)
+save_path_ = os.path.join(log_folder,exp_suffix, "6h-bat-Oct-track-p-grid-2")
+if not os.path.exists(save_path_):
+    os.makedirs(save_path_)
+assert os.path.exists(save_path_)
 
-def parallel(fork_id):
+def parallel(fork_id,log_fn,save_path):
     class MPC_parallel(exp.MPC_ExperimentManager):
         None
     for i in range(1):
@@ -53,7 +53,7 @@ if __name__ == '__main__':
         t=Process(target=parallel,args=(str(i+1),)) #创建线程
         thread_list.append(t)
         t.start()  #启动线程
-        sleep(20)
+        sleep(5)
         
     for t in thread_list:
         t.join()
