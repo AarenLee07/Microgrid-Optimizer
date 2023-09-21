@@ -101,10 +101,10 @@ def plot_track_p_max(df_merged,figsize,line_keys=['actual_p_max','necessary','un
             ax.tick_params(axis='both',which='major',labelsize=ticklabel_fs)
 
         plot_ax_data(ax=ax)
-        ax.text(x=0.7,y=0.76,s='$necessary$',ha='center',va='center',transform=ax.transAxes,color='darkgreen')
-        ax.text(x=0.7,y=0.28,s='$track\_real$',ha='center',va='center',transform=ax.transAxes,color='peru')
+        ax.text(x=0.55,y=0.76,s='$necessary$',ha='center',va='center',transform=ax.transAxes,color='darkgreen')
+        ax.text(x=0.55,y=0.28,s='$unnecessary (track\_real)$',ha='center',va='center',transform=ax.transAxes,color='peru')
         if track_real==True:
-            ax.text(x=0.7,y=0.5,s='$unnecessary$',ha='center',va='center',transform=ax.transAxes,color='purple')
+            ax.text(x=0.55,y=0.5,s='$unnecessary$',ha='center',va='center',transform=ax.transAxes,color='purple')
         ax.set_ylim(ylimit_main)
         ax.set_xlabel("Day of month (May-2019)",fontsize=label_fs,loc='center')
         ax.set_ylabel("Peak demand till $t$ (kW)",fontsize=label_fs)
@@ -324,7 +324,7 @@ def cluster_box_plot(figsize,
     # Set y-tick labels font size
     ax.tick_params(axis='y', labelsize=9)
     ax.tick_params(axis='x', labelsize=9)
-    ax.set_xlabel('MAPE(%)',loc='left',fontsize=label_fs)
+    ax.set_xlabel('MAPE (%)',loc='left',fontsize=label_fs)
     ax.set_ylabel("Relative regret (%)", fontsize=label_fs)
     for i in range(len(positions2)):
         if i%2==0:
@@ -347,7 +347,7 @@ def cluster_box_plot(figsize,
                             markerfacecolor='gray', markersize=0))
     
     ax.legend(handles=legend_elements,loc='upper left',fontsize=legend_fs) 
-    ax.set_xlabel("MAPE", loc='center',fontsize=label_fs)
+    ax.set_xlabel("MAPE (%)", loc='center',fontsize=label_fs)
     
     if save_fn is not None:
         plt.savefig(save_fn)
@@ -782,7 +782,7 @@ def mplot_origin_valid_bar(params):
             new_key=key
         df_valid=df#.drop(df[df.is_valid==False].index)
 
-        axs[i].grid(axis = 'x',linestyle='--',alpha=0.1)
+        #axs[i].grid(axis = 'x',linestyle='--',alpha=0.1)
         axs[i].grid(axis = 'y',linestyle='--',alpha=0.8)
         
         scatter_x=np.array(df[duration_key])
@@ -856,7 +856,7 @@ def mplot_origin_valid_bar(params):
                 width=0.6,alpha=0.1,label="MPC_GT")
             
         if duration_key=='month_of_year':
-            axs[i].set_xlabel("Month of year(2019)",fontsize=label_fs,loc='center')
+            axs[i].set_xlabel("Month of year (2019)",fontsize=label_fs,loc='center')
         else:
             axs[i].set_xlabel(duration_key,fontsize=label_fs,loc='center')
         axs[i].set_title(subtitle,fontsize=title_fs)
