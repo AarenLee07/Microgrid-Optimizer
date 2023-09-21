@@ -79,9 +79,11 @@ def plot_track_p_max(df_merged,figsize,line_keys=['actual_p_max','necessary','un
         axin_color='steelblue'
         
         if ax==None:
+            group_plot=False
             fig, ax = plt.subplots(figsize=figsize)
         else:
             ax=ax
+            group_plot=True
 
         def plot_ax_data(ax):
             for key in line_keys:
@@ -102,7 +104,10 @@ def plot_track_p_max(df_merged,figsize,line_keys=['actual_p_max','necessary','un
 
         plot_ax_data(ax=ax)
         ax.text(x=0.55,y=0.76,s='$necessary$',ha='center',va='center',transform=ax.transAxes,color='darkgreen')
-        ax.text(x=0.55,y=0.28,s='$unnecessary (track\_real)$',ha='center',va='center',transform=ax.transAxes,color='peru')
+        if group_plot==False:
+            ax.text(x=0.55,y=0.28,s='$unnecessary$',ha='center',va='center',transform=ax.transAxes,color='orange')
+        else:
+            ax.text(x=0.55,y=0.28,s='$unnecessary$ $(track-real)$',ha='center',va='center',transform=ax.transAxes,color='orange')
         if track_real==True:
             ax.text(x=0.55,y=0.5,s='$unnecessary$',ha='center',va='center',transform=ax.transAxes,color='purple')
         ax.set_ylim(ylimit_main)
@@ -251,8 +256,16 @@ def get_df_for_plot(method,fn_list):
 
 def cluster_box_plot(figsize,
                      mape,y_dic,mean_dic,ylimit=(-10,180),
-                     mean_dic_old=None,ax=None,
+                     mean_dic_old=None,ax=None,vol=True,
                      plot_line_new=True, plot_line_old=False, save_fn=None):
+    if vol ==True:
+        for dic in [y_dic,mean_dic,mean_dic_old]:
+            if dic!=None:
+                for i in dic:
+                    for k in range(len(dic[i])):
+                        dic[i][k]=-dic[i][k]+100
+        ylimit=(-100,120)
+    
     if plot_line_old==True:
         assert mean_dic_old is not None
     if ax!=None:
@@ -296,6 +309,10 @@ def cluster_box_plot(figsize,
         ax.set_xticks([])
         ax.set_xticklabels([])
         boxs.append(bplot['boxes'][0])
+        
+    if vol ==True:
+        ax.hlines(y=100,linestyles=(0, (5, 8)),xmin=min(positions1)-2*figsize[0]/32,xmax=max(positions1)+4*figsize[0]/32,colors='gray',linewidth=0.7,alpha=0.4, zorder=1)
+        ax.hlines(y=0,linestyles=(0, (5, 8)),xmin=min(positions1)-2*figsize[0]/32,xmax=max(positions1)+4*figsize[0]/32,colors='gray',linewidth=0.7,alpha=0.4, zorder=2)
 
 
     labels=[]
@@ -325,7 +342,7 @@ def cluster_box_plot(figsize,
     ax.tick_params(axis='y', labelsize=9)
     ax.tick_params(axis='x', labelsize=9)
     ax.set_xlabel('MAPE (%)',loc='left',fontsize=label_fs)
-    ax.set_ylabel("Relative regret (%)", fontsize=label_fs)
+    
     for i in range(len(positions2)):
         if i%2==0:
             diff=positions2[1]-positions2[0]
@@ -345,8 +362,12 @@ def cluster_box_plot(figsize,
     if plot_line_old==True:
         legend_elements.append(Line2D([0], [0], marker='+', color='gray', label='track real',linewidth=0.6,linestyle='--',
                             markerfacecolor='gray', markersize=0))
-    
-    ax.legend(handles=legend_elements,loc='upper left',fontsize=legend_fs) 
+    if vol==True:
+        ax.legend(handles=legend_elements,loc='lower left',fontsize=legend_fs) 
+        ax.set_ylabel("Vol* (%)", fontsize=label_fs, labelpad=-5)
+    else:
+        ax.set_ylabel("Relative regret (%)", fontsize=label_fs)
+        ax.legend(handles=legend_elements,loc='upper left',fontsize=legend_fs) 
     ax.set_xlabel("MAPE (%)", loc='center',fontsize=label_fs)
     
     if save_fn is not None:
@@ -387,7 +408,7 @@ rc_={
 color_dic_glb={
         'MPC-GT':'seagreen',# aquamarine
         'MPC-Prediction':'navy',
-        'MPC-Heuristic':'peru',
+        'MPC-Heuristic':'orange',
         'MPC-Heuristic-our-method':'purple',
         'MPC-Naive':'slategray',
         'MSC-GT':'gray', #green
@@ -441,7 +462,7 @@ legend_dict={
         'MPC-Heuristic':'track real',
         'MPC-Naive':'MPC-Naive',
         'MPC-Disturbance':'MPC-Arti-Noise',
-        'MPC-Heuristic-our-method':'track necessary(ours)',
+        'MPC-Heuristic-our-method':'track necessary (ours)',
         'MSC-GT':'RBC',
         'MSC-Naive':'MSC-Naive'
     }
@@ -782,8 +803,8 @@ def mplot_origin_valid_bar(params):
             new_key=key
         df_valid=df#.drop(df[df.is_valid==False].index)
 
-        #axs[i].grid(axis = 'x',linestyle='--',alpha=0.1)
-        axs[i].grid(axis = 'y',linestyle='--',alpha=0.8)
+        axs[i].grid(axis = 'x',linestyle='--',alpha=0.1)
+        #axs[i].grid(axis = 'y',linestyle='--',alpha=0.8)
         
         scatter_x=np.array(df[duration_key])
         scatter_y=np.array(df[new_key])
