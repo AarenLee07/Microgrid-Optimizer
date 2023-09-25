@@ -90,8 +90,8 @@ class MPC_ExperimentManager(ExperimentManager):
         op_params["disturbance_scale"]=params.get("disturbance_scale", 0.03)
         op_params["p_grid_max_method"]=params.get("p_grid_max_method","by_execution")
         op_params["p_grid_max"] = None if p_grid_max is None else str(p_grid_max)
-        op_params["shift"]=params.get("shift",None)
-        op_params["shift_ratio"]=params.get("shift_ratio",None)
+        op_params["shift"]=params.get("shift",False)
+        op_params["shift_ratio"]=params.get("shift_ratio",0)
         pred_model = params.get("pred_model", "GT") 
         print("pred_model:",pred_model)
         if pred_model=='GT':

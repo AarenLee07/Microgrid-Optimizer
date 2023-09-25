@@ -107,7 +107,7 @@ def plot_track_p_max(df_merged,figsize,line_keys=['actual_p_max','necessary','un
         if group_plot==False:
             ax.text(x=0.55,y=0.28,s='$unnecessary$',ha='center',va='center',transform=ax.transAxes,color='orange')
         else:
-            ax.text(x=0.55,y=0.28,s='$unnecessary$ $(track-real)$',ha='center',va='center',transform=ax.transAxes,color='orange')
+            ax.text(x=0.55,y=0.28,s='$unnecessary$ $(track-real)$',ha='center',va='center',transform=ax.transAxes,color='orange',fontsize=label_fs-2)
         if track_real==True:
             ax.text(x=0.55,y=0.5,s='$unnecessary$',ha='center',va='center',transform=ax.transAxes,color='purple')
         ax.set_ylim(ylimit_main)
@@ -354,8 +354,8 @@ def cluster_box_plot(figsize,
     for key in color_dic.keys():
         legend_elements.append(Patch(facecolor=color_dic[key], edgecolor='w',label=key,alpha=0.4))
     #if plot_line_new==True:
-    legend_elements.append(Line2D([0], [0], marker='+', color='gray', label='Mean',linewidth=0,
-                                markerfacecolor='gray', markersize=8))
+    #legend_elements.append(Line2D([0], [0], marker='+', color='gray', label='Mean',linewidth=0,
+    #        markerfacecolor='gray', markersize=8))
     
         #legend_elements.append(Line2D([0], [0], marker='+', color='gray', label='Median',linewidth=0,
                                # markerfacecolor='gray', markersize=0))
@@ -803,7 +803,7 @@ def mplot_origin_valid_bar(params):
             new_key=key
         df_valid=df#.drop(df[df.is_valid==False].index)
 
-        axs[i].grid(axis = 'x',linestyle='--',alpha=0.1)
+        #axs[i].grid(axis = 'x',linestyle='--',alpha=0.1)
         #axs[i].grid(axis = 'y',linestyle='--',alpha=0.8)
         
         scatter_x=np.array(df[duration_key])

@@ -150,9 +150,9 @@ class Predictor():
                 "price_sell": None, "price_sell_kws": None
                 },      
         }
-        if shift is None:
+        if shift in [False,'False','false']:
             short_cut_dic=short_cut_dic_1
-        elif shift:
+        elif shift in [True,'True','true']:
             short_cut_dic=short_cut_dic_2
         else:
             raise Exception("unrecognized shift")
@@ -162,7 +162,6 @@ class Predictor():
             # TODO: enable to update shortcut settings with corresponding kwargs in predictor_tmp 
         else:
             predictor = predictor_tmp
-
 
         def set_predictor_help(key):
             p = predictor[key]
