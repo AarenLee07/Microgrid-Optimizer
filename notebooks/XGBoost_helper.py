@@ -769,13 +769,13 @@ class Simple_forecast():
             data_n=data_n.drop(columns=['ReactivePower'])
         
         
-        print(data_n.info())
+        #print(data_n.info())
         data_n=data_n.set_index('DateTime')
         
         print("# calculate pred for each step")
         for i in indexes_pred:
             
-            print(i)
+            #print(i)
             last=self.pred_ref.at[i,'RealPower']
             
             idx_start=i+timedelta(minutes=15)
@@ -827,14 +827,14 @@ class Simple_forecast():
             for i in indexes_pred:
                 data_n.loc[i,'MAE_'+str(k)]=\
                     mean_absolute_error(data_n.at[i,'RealPower_pred'][:k],data_n.loc[i,'future_real'][:k])
-            data_n['RMSE_'+str(k)]=None
+            '''data_n['RMSE_'+str(k)]=None
             for i in indexes_pred:
                 data_n.loc[i,'RMSE_'+str(k)]=\
                     np.sqrt(mean_squared_error(data_n.at[i,'RealPower_pred'][:k],data_n.loc[i,'future_real'][:k]))
-            data_n['MAPE_'+str(k)]=None
+            #data_n['MAPE_'+str(k)]=None
             for i in indexes_pred:
                 data_n.loc[i,'MAPE_'+str(k)]=\
-                    mean_absolute_percentage_error(data_n.at[i,'RealPower_pred'][:k],data_n.loc[i,'future_real'][:k])
+                    mean_absolute_percentage_error(data_n.at[i,'RealPower_pred'][:k],data_n.loc[i,'future_real'][:k])'''
             print(k," done")
                 
         self.pred=data_n.copy()

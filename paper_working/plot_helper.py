@@ -406,65 +406,65 @@ rc_={
 }
 
 color_dic_glb={
-        'MPC-GT':'seagreen',# aquamarine
-        'MPC-Prediction':'navy',
-        'MPC-Heuristic':'orange',
-        'MPC-Heuristic-our-method':'purple',
-        'MPC-Naive':'slategray',
-        'MSC-GT':'gray', #green
-        'MPC-Disturbance':'purple',
+        'MPC-GT-by_execution':'seagreen',# aquamarine
+        'MPC-Prediction-by_execution':'navy',
+        'MPC-Heuristic-by_execution':'orange',
+        'MPC-Heuristic-minimize_cap':'purple',
+        'MPC-Naive-by_execution':'slategray',
+        'MSC-GT-by_execution':'gray', #green
+        'MPC-Disturbance-by_execution':'purple',
         'MSC-Naive':'grey'
     }
 color_dic_glb_w={
-        'MPC-GT':'w',# aquamarine
-        'MPC-Prediction':'w',
-        'MPC-Heuristic':'w',
-        'MPC-Naive':'w',
-        'MPC-Heuristic-our-method':'w',
-        'MSC-GT':'w', #green
-        'MPC-Disturbance':'w',
-        'MSC-Naive':'w'
+        'MPC-GT-by_execution':'w',# aquamarine
+        'MPC-Prediction-by_execution':'w',
+        'MPC-Heuristic-by_execution':'w',
+        'MPC-Naive-by_execution':'w',
+        'MPC-Heuristic-minimize_cap':'w',
+        'MSC-GT-by_execution':'w', #green
+        'MPC-Disturbance-by_execution':'w',
+        'MSC-Naive-by_execution':'w'
     }
 marker_dic_glb_w={
-        'MPC-GT':'_',
-        'MPC-Prediction':'^',
-        'MPC-Heuristic':'x',
-        'MPC-Naive':'v',
-        'MPC-Heuristic-our-method':'o',
-        'MPC-Disturbance':'+',
-        'MSC-GT':'_',
-        'MSC-Naive':'_'
+        'MPC-GT-by_execution':'_',
+        'MPC-Prediction-by_execution':'^',
+        'MPC-Heuristic-by_execution':'x',
+        'MPC-Naive-by_execution':'v',
+        'MPC-Heuristic-minimize_cap':'o',
+        'MPC-Disturbance-by_execution':'+',
+        'MSC-GT-by_execution':'_',
+        'MSC-Naive-by_execution':'_'
     }
 
 marker_dic_glb={
-        'MPC-GT':'_',
-        'MPC-Prediction':'_',
-        'MPC-Heuristic':'x',
-        'MPC-Naive':'_',
-        'MPC-Disturbance':'_',
-        'MPC-Heuristic-our-method':'o',
-        'MSC-GT':'_',
-        'MSC-Naive':'_'
+        'MPC-GT-by_execution':'_',
+        'MPC-Prediction-by_execution':'_',
+        'MPC-Heuristic-by_execution':'x',
+        'MPC-Naive-by_execution':'_',
+        'MPC-Disturbance-by_execution':'_',
+        'MPC-Heuristic-minimize_cap':'o',
+        'MSC-GT-by_execution':'_',
+        'MSC-Naive-by_execution':'_'
     }
 marker_s_dict={
-        'MPC-GT':1,
-        'MPC-Prediction':1,
-        'MPC-Heuristic':0.3,
-        'MPC-Naive':1,
-        'MPC-Disturbance':1,
-        'MPC-Heuristic-our-method':0.3,
-        'MSC-GT':1,
-        'MSC-Naive':1
+        'MPC-GT-by_execution':1,
+        'MPC-Prediction-by_execution':1,
+        'MPC-Heuristic-by_execution':0.3,
+        'MPC-Naive-by_execution':1,
+        'MPC-Disturbance-by_execution':1,
+        'MPC-Heuristic-minimize_cap':0.3,
+        'MSC-GT-by_execution':1,
+        'MSC-Naive-by_execution':1
     }
 legend_dict={
-        'MPC-GT':'MPC-GT',
-        'MPC-Prediction':'MPC-Prediction',
-        'MPC-Heuristic':'track real',
-        'MPC-Naive':'MPC-Naive',
-        'MPC-Disturbance':'MPC-Arti-Noise',
-        'MPC-Heuristic-our-method':'track necessary (ours)',
-        'MSC-GT':'RBC',
-        'MSC-Naive':'MSC-Naive'
+        'MPC-GT-by_execution':'MPC-GT',
+        'MPC-Prediction-by_execution':'MPC-Prediction',
+        'MPC-Heuristic-by_execution':'track real',
+        'MPC-Naive-by_execution':'MPC-Naive',
+        'MPC-Disturbance-by_execution':'MPC-Arti-Noise',
+        'MPC-Heuristic-minimize_cap':'track necessary (ours)',
+        'MSC-GT-by_execution':'RBC',
+        'MSC-Naive-by_execution':'MSC-Naive'
     }
 
 def hex_to_RGB(hex_str):
@@ -516,11 +516,11 @@ def gradient_image(ax, direction=0.3, cmap_range=(0, 1), **kwargs):
 def pre_process(df,key,duration_key):
     df.set_index('id')
     
-    df=df[['strategy','pred_model',duration_key,key,'days']]
+    df=df[['strategy','pred_model',duration_key,key,'days','p_grid_max_method']]
     df=df.replace('optimal',"MPC")
     df=df.replace("Simple","Heuristic")
-    df=df.replace("Simple-our-method","Heuristic-our-method")
-    df['label']=df['strategy']+'-'+df['pred_model']
+    #df=df.replace("Simple-our-method","Heuristic-our-method")
+    df['label']=df['strategy']+'-'+df['pred_model']+'-'+df['p_grid_max_method']
     data=dict()
     
     for i in df[duration_key].unique():
@@ -528,8 +528,8 @@ def pre_process(df,key,duration_key):
             for label in df['label'].unique():
                 data[label]=df[((df[duration_key]==i)) & (df['label']==label)][key].values[0]
             
-            upper=df[((df[duration_key]==i)) & (df['label']=='MSC-GT')][key].values[0]
-            lower=df[((df[duration_key]==i)) & (df['label']=='MPC-GT')][key].values[0]
+            upper=df[((df[duration_key]==i)) & (df['label']=='MSC-GT-by_execution')][key].values[0]
+            lower=df[((df[duration_key]==i)) & (df['label']=='MPC-GT-by_execution')][key].values[0]
             '''
             #assert upper>lower
             prediction=df[((df['week_of_year']==i)) & (df['label']=='MPC-Prediction')][key].values[0]
@@ -539,8 +539,8 @@ def pre_process(df,key,duration_key):
         except:
             pass
         
-        upper_id=df[((df[duration_key]==i)) & (df['label']=='MSC-GT')][key].index
-        lower_id=df[((df[duration_key]==i)) & (df['label']=='MPC-GT')][key].index
+        upper_id=df[((df[duration_key]==i)) & (df['label']=='MSC-GT-by_execution')][key].index
+        lower_id=df[((df[duration_key]==i)) & (df['label']=='MPC-GT-by_execution')][key].index
         
         for label in df["label"].unique():
             data[label+'_id']=df[((df[duration_key]==i)) & (df['label']==label)][key].index
@@ -607,11 +607,11 @@ def plot_valid(df,relative,limit,figsize,save_fn,key,fontsize,duration_key):
 
     df_valid=df.drop(df[df.is_valid==False].index)
 
-    x_coor=np.array([df_valid[df_valid.label=='MPC-Prediction'][duration_key],\
-        df_valid[df_valid.label=='MPC-Prediction'][duration_key]])
+    x_coor=np.array([df_valid[df_valid.label=='MPC-Prediction-by_execution'][duration_key],\
+        df_valid[df_valid.label=='MPC-Prediction-by_execution'][duration_key]])
 
-    y_coor=np.array([df_valid[df_valid.label=='MPC-Heuristic'][new_key],\
-        df_valid[df_valid.label=='MPC-Prediction'][new_key]])
+    y_coor=np.array([df_valid[df_valid.label=='MPC-Heuristic-by_execution'][new_key],\
+        df_valid[df_valid.label=='MPC-Prediction-by_execution'][new_key]])
 
     color_dict=color_dic_glb
     maker_dict=marker_dic_glb
@@ -859,19 +859,19 @@ def mplot_origin_valid_bar(params):
                 ('MPC-Heuristic'in params["labels_not_show"]):
                     pass
             else:
-                x_coor=np.array([df_valid[df_valid.label=='MPC-Prediction'][duration_key],\
-                    df_valid[df_valid.label=='MPC-Prediction'][duration_key]])
-                y_coor=np.array([df_valid[df_valid.label=='MPC-Heuristic'][new_key],\
-                    df_valid[df_valid.label=='MPC-Prediction'][new_key]])
+                x_coor=np.array([df_valid[df_valid.label=='MPC-Prediction-by_execution'][duration_key],\
+                    df_valid[df_valid.label=='MPC-Prediction-by_execution'][duration_key]])
+                y_coor=np.array([df_valid[df_valid.label=='MPC-Heuristic-by_execution'][new_key],\
+                    df_valid[df_valid.label=='MPC-Prediction-by_execution'][new_key]])
                 axs[i].bar(x=x_coor[0],height=np.abs(y_coor[0]-y_coor[1]), \
                     bottom=min_help(y_coor[0],y_coor[1]),
                     color='lightsteelblue',width=0.6,alpha=0.3,label="Prediction<Heuristic")
             
         if not relative:
-            x_coor_MPC_GT=np.array([df[df.label=='MPC-GT'][duration_key],\
-                df[df.label=='MPC-GT'][duration_key]])
-            y_coor_MPC_GT=np.array([[0]*len(df[df.label=='MPC-GT'][new_key]),\
-                df[df.label=='MPC-GT'][new_key]])
+            x_coor_MPC_GT=np.array([df[df.label=='MPC-GT-by_execution'][duration_key],\
+                df[df.label=='MPC-GT-by_execution'][duration_key]])
+            y_coor_MPC_GT=np.array([[0]*len(df[df.label=='MPC-GT-by_execution'][new_key]),\
+                df[df.label=='MPC-GT-by_execution'][new_key]])
             axs[i].bar(x=x_coor_MPC_GT[0],height=np.abs(y_coor_MPC_GT[0]-y_coor_MPC_GT[1]), \
                 bottom=y_coor_MPC_GT[0],color='seagreen',
                 width=0.6,alpha=0.1,label="MPC_GT")
