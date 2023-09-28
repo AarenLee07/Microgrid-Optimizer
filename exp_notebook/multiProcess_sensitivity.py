@@ -20,7 +20,7 @@ exp_folder = os.path.join(out_path, "experiments", exp_suffix)
 debug_folder = os.path.join(out_path, "debug_test")
 assert os.path.exists(exp_folder)
 
-save_path = os.path.join(log_folder,exp_suffix, "trend_check")
+save_path = os.path.join(log_folder,exp_suffix, "trend_check_new_method_enable_discharge")
 if not os.path.exists(save_path):
     os.makedirs(save_path)
 assert os.path.exists(save_path)
@@ -56,7 +56,7 @@ if __name__ == '__main__':
     freeze_support()
 
     
-    log_fn = os.path.join(exp_folder, "pred_bld_pv_ev.xlsx")#_oneday_12months
+    log_fn = os.path.join(exp_folder, "pred_bld_pv_ev_new_method.xlsx")#_oneday_12months
     for i in range(4):
         t=Process(target=parallel,args=('A'+str(i+1),log_fn)) #创建线程
         thread_list.append(t)

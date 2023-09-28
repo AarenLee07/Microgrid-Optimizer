@@ -18,6 +18,8 @@ import copy
 
 first_start=True
 
+run_bat_as_sol=False
+
 
 """
 ============================= UPDATES =============================
@@ -566,33 +568,80 @@ class MPC_op():
         for k in range(exe_K):
             # execute exe_K stpes
             
-            '''old way of execution start'''
-            
-            # update battery charge
-            #   when battery has more complicated dynamics, soc_update rule may be different
-            bat_p = sol["bat_p"][0][k]
-            self.battery.update_soc(p = bat_p, delta=delta_0)
-            self.battery_est.update_soc(p = bat_p, delta=delta_0)
-            bat_e = self.battery.get_states("e_curr")
-            
-            # update ev charge
-            ev_p = self.update_ev_charge(t, sol=sol, exe_k=k)
-            # [Yi, 2023/02/11]: add ev_I to track
-            ev_p_sum, ev_I = np.sum(ev_p), len(ev_p)
+            if run_bat_as_sol==True:
+                '''old way of execution start'''
+                # update battery charge
+                #   when battery has more complicated dynamics, soc_update rule may be different
+                bat_p = sol["bat_p"][0][k]
+                self.battery.update_soc(p = bat_p, delta=delta_0)
+                self.battery_est.update_soc(p = bat_p, delta=delta_0)
+                bat_e = self.battery.get_states("e_curr")
+                
+                # update ev charge
+                ev_p = self.update_ev_charge(t, sol=sol, exe_k=k)
+                # [Yi, 2023/02/11]: add ev_I to track
+                ev_p_sum, ev_I = np.sum(ev_p), len(ev_p)
 
-            # update p_grid
-            exe_t = t + timedelta(hours=self.delta_0*k)
-            load_pv = self.data["load_pv"].loc[exe_t]
-            load_bld = self.data["load_bld"].loc[exe_t]
+                # update p_grid
+                exe_t = t + timedelta(hours=self.delta_0*k)
+                load_pv = self.data["load_pv"].loc[exe_t]
+                load_bld = self.data["load_bld"].loc[exe_t]
 
-            p_grid = load_bld - load_pv + ev_p_sum - bat_p
-            # bat_p neg means charging, pos means discharging
+                p_grid = load_bld - load_pv + ev_p_sum - bat_p
+                # bat_p neg means charging, pos means discharging
+                
+                sol_ev_p=0
+                for i in sol["ev_p"][0]:
+                    sol_ev_p+=i[0]
+                
+                '''old way of execution end'''
+                
+            elif run_bat_as_sol==False:
+                
+                '''new way of execution start'''
+                # update battery charge
+                #   when battery has more complicated dynamics, soc_update rule may be different
+                
+                bat_p = sol["bat_p"][0][k]
+                
+                # update ev charge
+                ev_p = self.update_ev_charge(t, sol=sol, exe_k=k)
+                # [Yi, 2023/02/11]: add ev_I to track
+                ev_p_sum, ev_I = np.sum(ev_p), len(ev_p)
+
+                # update p_grid
+                exe_t = t + timedelta(hours=self.delta_0*k)
+                load_pv = self.data["load_pv"].loc[exe_t]
+                load_bld = self.data["load_bld"].loc[exe_t]
+
+                p_grid = load_bld - load_pv + ev_p_sum - bat_p
+                # bat_p neg means charging, pos means discharging
+                
+                if p_grid>sol["p_grid"][0][k]:
+                    if p_grid>self.lastest_p_prev_max:
+                        mismatch=p_grid-self.lastest_p_prev_max
+                        
+                        # cal max posibile power of discharing from bat
+                        bat_capacity=params["bat_capacity"]
+                        bat_efficacy=params["bat_efficacy"]
+                        bat_p_max=min(bat_capacity/params["bat_p_max"],bat_e_curr/delta_0)*bat_efficacy # pos means discharging
+                        
+                        compensation=min(mismatch,-bat_p+bat_p_max)
+                        bat_p=bat_p+compensation
+                        p_grid=p_grid-compensation
+                
+                self.battery.update_soc(p = bat_p, delta=delta_0)
+                self.battery_est.update_soc(p = bat_p, delta=delta_0)
+                bat_e = self.battery.get_states("e_curr")
+                            
+                
+                sol_ev_p=0
+                for i in sol["ev_p"][0]:
+                    sol_ev_p+=i[0]
+                
+                '''new way of execution end'''
             
-            sol_ev_p=0
-            for i in sol["ev_p"][0]:
-                sol_ev_p+=i[0]
             
-            '''old way of execution end'''
             
             
             # [Lunlong 2023/08/23]    
