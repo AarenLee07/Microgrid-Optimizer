@@ -168,7 +168,7 @@ class MPC_op():
             # [Lunlong, 2023/08/08] to get the summary at first time step
             if save == True and t == tstart:
                 temp_MPC_op=copy.deepcopy(self)
-                temp_MPC_op.run_k_steps(t=t, exe_K=96, t_cut=t_cut, fork_id=fork_id, tstart=tstart)
+                temp_MPC_op.run_k_steps(t=t, exe_K=exe_K, t_cut=t_cut, fork_id=fork_id, tstart=tstart)
                 op_log_temp = temp_MPC_op.op_log.dropna().copy()
                 assert len(op_log_temp)>0
                 self.summary_one_step=temp_MPC_op.op_summary(op_log_temp).copy().T

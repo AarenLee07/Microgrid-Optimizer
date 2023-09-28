@@ -32,16 +32,19 @@ from datetime import datetime, timedelta
 class Predictor():
 
     def __init__(self, data_pool, data_pool_xgb=None, shortcut = None, shift=None,shift_ratio=0,delta=0.25,
-                 bld=None, pv=None, ev=None, price_buy=None, price_sell=None,
-                 bld_kws=None, pv_kws=None, ev_kws=None, price_buy_kws=None, price_sell_kws=None):
+                 bld=None, pv=None, ev=None, price_buy=None, price_sell=None, Simple_dic=None,
+                 distb_bld_kws=None,
+                 simple_bld_kws=None, simple_pv_kws=None, simple_ev_kws=None, 
+                 price_buy_kws=None, price_sell_kws=None):
 
         self.data_pool = data_pool
         self.data_pool_xgb = data_pool_xgb
         #self.data_pool_noise=None
         
-        self.set_predictor(shortcut=shortcut,shift=shift,shift_ratio=shift_ratio,
+        self.set_predictor(shortcut=shortcut,shift=shift,shift_ratio=shift_ratio,Simple_dic=Simple_dic,
                  bld=bld, pv=pv, ev=ev, price_buy=price_buy, price_sell=price_sell,
-                 bld_kws=bld_kws, pv_kws=pv_kws, ev_kws=ev_kws, 
+                 distb_bld_kws=distb_bld_kws, 
+                 simple_bld_kws=simple_bld_kws, simple_pv_kws=simple_pv_kws, simple_ev_kws=simple_ev_kws, 
                  price_buy_kws=price_buy_kws, price_sell_kws=price_sell_kws)
         
  
@@ -56,12 +59,45 @@ class Predictor():
         return pred
 
 
-    def set_predictor(self, shortcut, bld=None, pv=None, ev=None, price_buy=None, price_sell=None, shift=None,shift_ratio=0,
-                 bld_kws=None, pv_kws=None, ev_kws=None, price_buy_kws=None, price_sell_kws=None,**predictors):
+    def set_predictor(self, shortcut, bld=None, pv=None, ev=None, price_buy=None, price_sell=None, shift=None,shift_ratio=0,Simple_dic=None,
+                 distb_bld_kws=None, 
+                 simple_bld_kws={"rule": "week", "num": 4, "exp_alpha": 0.1},
+                 simple_pv_kws= {"rule": "day", "num": 7, "exp_alpha": 0.1}, 
+                 simple_ev_kws={"rule": "week", "num": 1}, 
+                 price_buy_kws=None, price_sell_kws=None,**predictors):
 
         predictor_tmp = predictors
-
         
+        # default dic for Simple:
+        Simple={
+                "bld": Predictor_load_Simple, "bld_kws": simple_bld_kws,#{"rule": "week", "num": 4, "exp_alpha": 0.1},#"bld": Predictor_load_GT, "bld_kws": None,
+                "pv": Predictor_load_Simple, "pv_kws":simple_pv_kws,
+                "ev": Predictor_ev_Simple, "ev_kws": simple_ev_kws, #{"rule": "week", "num": 1},
+                "price_buy": Predictor_tou_SDGE_DA, "price_buy_kws": None,
+                "price_sell": None, "price_sell_kws": None
+            }
+        print("exp_alpha for pv:",simple_pv_kws['exp_alpha'])
+        # if specified via Simple_dic:
+        False_flag=0
+        if Simple_dic!=None:
+            print("Notification of branch entry.")
+            if Simple_dic['bld'] in [False,'False','FALSE','false',0,'0']:
+                print("Notification of branch entry-bld.")
+                False_flag+=1
+                Simple['bld']=Predictor_load_GT
+                Simple["bld_kws"]=None
+            if Simple_dic['pv'] in [False,'False','FALSE','false',0,'0']:
+                print("Notification of branch entry-pv.")
+                False_flag+=1
+                Simple['pv']=Predictor_load_GT
+                Simple["pv_kws"]=None
+            if Simple_dic['ev'] in [False,'False','FALSE','false',0,'0']:
+                print("Notification of branch entry-ev.")
+                False_flag+=1
+                Simple['ev']=Predictor_ev_GT
+                Simple["ev_kws"]=None
+            assert False_flag<=2
+                
         short_cut_dic_1 = {
             #all GT as the upper bound
             "GT": {
@@ -71,19 +107,11 @@ class Predictor():
                 "price_buy": Predictor_tou_SDGE_DA, "price_buy_kws": None,
                 "price_sell": None, "price_sell_kws": None
                 },
-            "Simple": {
-                "bld": Predictor_load_Simple, "bld_kws": {"rule": "week", "num": 4, "exp_alpha": 0.1},#"bld": Predictor_load_GT, "bld_kws": None,
-                #"pv":  Predictor_load_Simple, "pv_kws": {"rule": "day", "num": 3, "exp_alpha": 0.1},
-                "ev": Predictor_ev_GT, "ev_kws": None,
-                "pv": Predictor_load_GT, "pv_kws": None,
-                #"ev": Predictor_ev_Simple, "ev_kws": {"rule": "week", "num": 1},
-                "price_buy": Predictor_tou_SDGE_DA, "price_buy_kws": None,
-                "price_sell": None, "price_sell_kws": None
-                },
+            "Simple": Simple,
             # all naive as the lower bound
             "Naive": {
                 "bld": Predictor_load_Simple, "bld_kws": {"rule": "naive"},#"bld": Predictor_load_GT, "bld_kws": None,
-                "pv":  Predictor_load_Simple, "pv_kws": {"rule": "naive"},
+                "pv": Predictor_load_GT, "pv_kws": None, # Predictor_load_Simple, "pv_kws": {"rule": "naive"},
                 "ev": Predictor_ev_GT, "ev_kws": None, # Predictor_ev_Simple, "ev_kws": {"rule": "naive"},
                 "price_buy": Predictor_tou_SDGE_DA, "price_buy_kws": None,
                 "price_sell": None, "price_sell_kws": None
@@ -99,7 +127,7 @@ class Predictor():
                 "price_sell": None, "price_sell_kws": None
                 },
             "Disturbance":{
-                "bld": Predictor_load_Noise, "bld_kws":bld_kws,#"bld": Predictor_load_GT, "bld_kws": None
+                "bld": Predictor_load_Noise, "bld_kws":distb_bld_kws,#"bld": Predictor_load_GT, "bld_kws": None
                 "pv": Predictor_load_GT, "pv_kws": None, #  Predictor_load_Simple, "pv_kws": {"rule": "day", "num": 3, "exp_alpha": 0.1},
                 "ev": Predictor_ev_GT, "ev_kws": None,
                 "price_buy": Predictor_tou_SDGE_DA, "price_buy_kws": None,
@@ -116,14 +144,7 @@ class Predictor():
                 "price_buy": Predictor_tou_SDGE_DA, "price_buy_kws": None,
                 "price_sell": None, "price_sell_kws": None
                 },
-            "Simple": {
-                "bld": Predictor_load_Simple_shift, "bld_kws": {"rule": "week", "num": 4, "exp_alpha": 0.1, "shift_ratio":shift_ratio},#"bld": Predictor_load_GT, "bld_kws": None,
-                "pv": Predictor_load_GT, "pv_kws": None,# Predictor_load_Simple, "pv_kws": {"rule": "day", "num": 3, "exp_alpha": 0.1},
-                "ev": Predictor_ev_GT, "ev_kws": None,
-                #"ev": Predictor_ev_Simple, "ev_kws": {"rule": "week", "num": 1},
-                "price_buy": Predictor_tou_SDGE_DA, "price_buy_kws": None,
-                "price_sell": None, "price_sell_kws": None
-                },
+            "Simple": Simple,
             # all naive as the lower bound
             "Naive": {
                 "bld": Predictor_load_Simple_shift, "bld_kws": {"rule": "naive","shift_ratio":shift_ratio},#"bld": Predictor_load_GT, "bld_kws": None,
@@ -143,16 +164,16 @@ class Predictor():
                 "price_sell": None, "price_sell_kws": None
                 },
             "Disturbance":{
-                "bld": Predictor_load_Noise, "bld_kws":bld_kws,#"bld": Predictor_load_GT, "bld_kws": None
+                "bld": Predictor_load_Noise, "bld_kws":distb_bld_kws,#"bld": Predictor_load_GT, "bld_kws": None
                 "pv": Predictor_load_GT, "pv_kws": None, #  Predictor_load_Simple, "pv_kws": {"rule": "day", "num": 3, "exp_alpha": 0.1},
                 "ev": Predictor_ev_GT, "ev_kws": None,
                 "price_buy": Predictor_tou_SDGE_DA, "price_buy_kws": None,
                 "price_sell": None, "price_sell_kws": None
                 },      
         }
-        if shift in [False,'False','false']:
+        if shift in [False,'False','false','FALSE',0]:
             short_cut_dic=short_cut_dic_1
-        elif shift in [True,'True','true']:
+        elif shift in [True,'True','true','TRUE',0]:
             short_cut_dic=short_cut_dic_2
         else:
             raise Exception("unrecognized shift")
@@ -162,6 +183,7 @@ class Predictor():
             # TODO: enable to update shortcut settings with corresponding kwargs in predictor_tmp 
         else:
             predictor = predictor_tmp
+
 
         def set_predictor_help(key):
             p = predictor[key]
@@ -269,7 +291,7 @@ class Predictor_load_Noise(Predictor_load_GT):
             noise_series_df=pd.DataFrame(noise_series)
             noise_series_df.index=pd.to_datetime(noise_series_df.index)
             noise_series_df["hour"]=timestamps.hour
-            print(noise_series_df.info())
+            #print(noise_series_df.info())
             #noise_series_df=noise_series_df.apply(sign_uniform_hour,axis=0)
             noise_series_df.loc[:,0]=noise_series_df.apply(lambda x: abs(x[0])*-1 if x['hour']%2==1 else abs(x[0]),axis=1)
             noise_series=noise_series_df.loc[:,0]
@@ -286,6 +308,9 @@ class Predictor_load_Noise(Predictor_load_GT):
             self.data_pool.data[f"load_{self.load_type}"]+self.data_pool.data[f"load_{self.load_type}"]*noise_ref
 
         
+        
+        
+
     def get_prediction(self, t, K, delta):
         
         if self.rule not in ["normal","normal_pos","normal_neg","uniform","uniform_pos","uniform_neg"]:

@@ -86,14 +86,23 @@ class MPC_ExperimentManager(ExperimentManager):
         op_params["penalty_coef"]=params.get("penalty_coef", 0)
         op_params["sol_save_steps"] = params.get("sol_save_steps",0)
         op_params["dc_formulation"]=params.get("dc_formulation", "moving")
-        op_params["disturbance_rule"]=params.get("disturbance_rule", "uniform")
-        op_params["disturbance_scale"]=params.get("disturbance_scale", 0.03)
-        op_params["p_grid_max_method"]=params.get("p_grid_max_method","by_execution")
+        
+        op_params["p_grid_max_method"]=params.get("p_grid_max_method","by_solution")
         op_params["p_grid_max"] = None if p_grid_max is None else str(p_grid_max)
         op_params["shift"]=params.get("shift",False)
         op_params["shift_ratio"]=params.get("shift_ratio",0)
         pred_model = params.get("pred_model", "GT") 
         print("pred_model:",pred_model)
+        
+        Simple_dic={
+            'bld':True,
+            'pv':True,
+            'ev':True
+        }
+        Simple_dic['bld']=params.get("simple_bld",True)
+        Simple_dic['pv']=params.get("simple_pv",True)
+        Simple_dic['ev']=params.get("simple_ev",True)
+        
         if pred_model=='GT':
             op_params["check_inconsistency"]=params.get("check_inconsistency",True)
         else:
@@ -107,11 +116,22 @@ class MPC_ExperimentManager(ExperimentManager):
         pv=params.get("pv", "Hopkins")
         ev=params.get("ev","OSLER")   
         
-        # 2023/07/21 LunLong
-        # Check params sanity with XGBoost prediction added
-        #if params.get("pred_model")=='Prediction':
-        #    if not params.get("bld")=="Sum" & params.get("pv")=='Sum':
-        #        raise Exception("Incompatible pred_model and bld/pv setting.")
+        simple_bld_kws={
+            'rule':params.get('simple_bld_rule','week'),
+            'num':int(params.get('simple_bld_num',4)),
+            'exp_alpha':params.get('simple_bld_exp_alpha',0.1),
+        }
+        
+        simple_pv_kws={
+            'rule':params.get('simple_pv_rule','day'),
+            'num':int(params.get('simple_pv_num',4)),
+            'exp_alpha':params.get('simple_pv_exp_alpha',0.1),
+        }
+        
+        simple_ev_kws={
+            'rule':params.get('simple_ev_rule','week'),
+            'num':int(params.get('simple_ev_num',1)),
+        }
         
         if bld is None or pv is None or ev is None:
             raise Exception("Building related params are not prepoperly initiated")
@@ -121,7 +141,12 @@ class MPC_ExperimentManager(ExperimentManager):
             month, day = int(s[:idx_hyphen]), int(s[idx_hyphen+1:])
             return datetime(2019, month, day, 0, 0)
         t_start = convert_time(params.get("start", "10-1"))
-        t_end = convert_time(params.get("end", "10-8"))
+        t_end=t_start+timedelta(hours=0.5)
+        #t_end = convert_time(params.get("end", "10-8"))
+        month_dic=[31,28,31,30,31,30,31,31,30,31,30,31]
+        month=int(params.get("month_of_year",3))
+        op_params["K"]=96*month_dic[month-1]
+        print("K=",op_params["K"])
         
         mpc = MPC_op()
 
@@ -156,15 +181,20 @@ class MPC_ExperimentManager(ExperimentManager):
 
         # Step 5: initialize predictor
         # [Yi, 2023/03/08] modify predictor def
+        
         if pred_model=="Disturbance":
-            bld_kws={
-                "rule":op_params["disturbance_rule"],
+            distb_bld_kws={
+                "rule":params.get("disturbance_rule", "uniform"),
                 "loc":0,
-                "scale":op_params["disturbance_scale"],
+                "scale":params.get("disturbance_scale", 0.03),
             }
-            mpc.init_predictor(shortcut=pred_model, bld_kws=bld_kws,shift=op_params["shift"],shift_ratio=op_params["shift_ratio"],delta=0.25)
+            mpc.init_predictor(shortcut=pred_model, distb_bld_kws=distb_bld_kws,shift=op_params["shift"],delta=0.25,
+                               simple_bld_kws=simple_bld_kws, simple_pv_kws=simple_pv_kws, simple_ev_kws=simple_ev_kws,
+                               shift_ratio=op_params["shift_ratio"],Simple_dic=Simple_dic)
         else:
-            mpc.init_predictor(shortcut=pred_model, bld_kws=None,shift=op_params["shift"],shift_ratio=op_params["shift_ratio"],delta=0.25)
+            mpc.init_predictor(shortcut=pred_model, distb_bld_kws=None,shift=op_params["shift"],delta=0.25,
+                               simple_bld_kws=simple_bld_kws, simple_pv_kws=simple_pv_kws, simple_ev_kws=simple_ev_kws,
+                               shift_ratio=op_params["shift_ratio"],Simple_dic=Simple_dic)
 
         # Step 6: initialize save_config
         mpc.init_save_config(save_fn=save_fn[:-5],  # FIXME: remove ".xlsx"
@@ -172,9 +202,8 @@ class MPC_ExperimentManager(ExperimentManager):
             checkpoints="1D", recovery=True, recovery_from=None,
             )
 
-        mpc.run(tstart=t_start, tend=t_end, exe_K=4, save=True, fork_id=fork_id)
+        mpc.run(tstart=t_start, tend=t_end, exe_K=1, save=True, fork_id=fork_id)
         
         stats = dict(mpc.summary["All"])
         
         return stats
-
