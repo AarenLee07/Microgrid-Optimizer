@@ -141,12 +141,14 @@ class MPC_ExperimentManager(ExperimentManager):
             month, day = int(s[:idx_hyphen]), int(s[idx_hyphen+1:])
             return datetime(2019, month, day, 0, 0)
         t_start = convert_time(params.get("start", "10-1"))
+        
+        t_end = convert_time(params.get("end", "10-8"))
+        '''
         t_end=t_start+timedelta(hours=0.5)
-        #t_end = convert_time(params.get("end", "10-8"))
         month_dic=[31,28,31,30,31,30,31,31,30,31,30,31]
         month=int(params.get("month_of_year",3))
         op_params["K"]=96*month_dic[month-1]
-        print("K=",op_params["K"])
+        print("K=",op_params["K"])'''
         
         mpc = MPC_op()
 
@@ -202,7 +204,7 @@ class MPC_ExperimentManager(ExperimentManager):
             checkpoints="1D", recovery=True, recovery_from=None,
             )
 
-        mpc.run(tstart=t_start, tend=t_end, exe_K=1, save=True, fork_id=fork_id)
+        mpc.run(tstart=t_start, tend=t_end, exe_K=4, save=True, fork_id=fork_id)
         
         stats = dict(mpc.summary["All"])
         

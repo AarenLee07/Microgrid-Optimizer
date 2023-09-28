@@ -83,6 +83,10 @@ class MPC_op():
         self.latest_max_bld_error_pos=0
         self.latest_max_pv_error_neg=0
         self.latest_max_pv_error_pos=0
+        self.latest_max_ev_error_neg=0
+        self.latest_max_ev_error_pos=0
+        self.latest_max_net_error_neg=0
+        self.latest_max_net_error_pos=0
         
         self.first_start_flag=0
         self.lastest_p_prev_max=None
@@ -109,10 +113,11 @@ class MPC_op():
         
         self.op_log = pd.DataFrame(
             index = pd.date_range(tstart, tend, freq="{}H".format(self.delta_0)),
-            columns = ["p_grid", "bat_p", "bat_e", "ev_p", "ev_I", 
-                        "load_bld", "load_pv", "tou_import", "tou_export",
+            columns = ["p_grid","sol_p_grid", "bat_p", "bat_e", "ev_p", "ev_I", "sol_ev_p",
+                        "load_bld", "load_pv","net_load", "tou_import", "tou_export",
                         "opex", "solve_time","latest_p_grid_max",
-                        "load_bld_error","load_pv_error"],
+                        "load_bld_error","load_pv_error",
+                        "ev_error","net_load_error"],
         )
 
 
@@ -680,14 +685,24 @@ class MPC_op():
             
             
             # calculate pred_error of current step
-            self.latest_max_bld_error_neg=min(load_bld-pred["load_bld"][exe_t],
+            self.latest_max_bld_error_neg=min(pred["load_bld"][exe_t]-load_bld,
                                             self.latest_max_bld_error_neg,0)
-            self.latest_max_bld_error_pos=max(load_bld-pred["load_bld"][exe_t],
+            self.latest_max_bld_error_pos=max(pred["load_bld"][exe_t]-load_bld,
                                             self.latest_max_bld_error_pos,0)
-            self.latest_max_pv_error_neg=min(load_pv-pred["load_pv"][exe_t],
+            self.latest_max_pv_error_neg=min(pred["load_pv"][exe_t]-load_pv,
                                             self.latest_max_pv_error_neg,0)
-            self.latest_max_pv_error_pos=max(load_pv-pred["load_pv"][exe_t],
+            self.latest_max_pv_error_pos=max(pred["load_pv"][exe_t]-load_pv,
                                             self.latest_max_pv_error_pos,0)
+            self.latest_max_ev_error_neg=min(sol_ev_p-ev_p_sum,
+                                            self.latest_max_ev_error_neg,0)
+            self.latest_max_ev_error_pos=max(sol_ev_p-ev_p_sum,
+                                            self.latest_max_ev_error_pos,0)
+            net_load_error=(pred["load_bld"].loc[exe_t]-load_bld)+\
+                    (pred["load_pv"].loc[exe_t]-load_pv)+(sol_ev_p-ev_p_sum)
+            self.latest_max_net_error_neg=min(net_load_error,
+                                            self.latest_max_net_error_neg,0)
+            self.latest_max_net_error_pos=max(net_load_error,
+                                            self.latest_max_net_error_pos,0)
             
             if self.op_params["check_inconsistency"]==True:
                 if not np.isclose(p_grid,sol["p_grid"][0][k],rtol=0.01,atol=0.01) :
@@ -731,14 +746,20 @@ class MPC_op():
 
             # record operations in op_log (incl. correct p_grid)
             self.op_log.loc[exe_t] = {
+                "sol_p_grid":sol["p_grid"][0][k],
                 "p_grid": p_grid, "bat_p": bat_p, "bat_e": bat_e,
-                "ev_p": ev_p_sum, "ev_I": ev_I,
+                "ev_p": ev_p_sum, "sol_ev_p": sol_ev_p, "ev_I": ev_I,
+                "net_load": ev_p_sum+load_bld+load_pv,
                 "load_bld": load_bld, "load_pv": load_pv,
                 "tou_import": price_buy, "tou_export": price_sell,
                 "opex": opex, "solve_time": t_last / exe_K,
                 "latest_p_grid_max": max(self.op_log["p_grid"]),
                 "load_bld_error": pred["load_bld"].loc[exe_t]-load_bld,
-                "load_pv_error": pred["load_pv"].loc[exe_t]-load_pv
+                "load_pv_error": pred["load_pv"].loc[exe_t]-load_pv,
+                "ev_error":sol_ev_p-ev_p_sum,
+                "net_load_error": net_load_error
+                
+                #"load_ev_error": pred["ev_sessions"]
             }
             
         
@@ -1059,6 +1080,10 @@ class MPC_op():
                  "load_bld_error_max_pos": "kW",
                  "load_pv_error_max_neg": "kW",
                  "load_pv_error_max_pos": "kW",
+                 "load_ev_error_max_neg": "kW",
+                 "load_ev_error_max_pos": "kW",
+                 "load_net_error_max_neg": "kW",
+                 "load_net_error_max_pos": "kW",
                  }
 
         df = pd.DataFrame(index=index, columns=columns.keys())
@@ -1163,6 +1188,10 @@ class MPC_op():
         df.loc["All","load_bld_error_max_pos"]= self.latest_max_bld_error_pos
         df.loc["All","load_pv_error_max_neg"]= self.latest_max_pv_error_neg
         df.loc["All","load_pv_error_max_pos"]= self.latest_max_pv_error_pos
+        df.loc["All","load_ev_error_max_neg"]= self.latest_max_ev_error_neg
+        df.loc["All","load_ev_error_max_pos"]= self.latest_max_ev_error_pos
+        df.loc["All","load_net_error_max_neg"]= self.latest_max_net_error_neg
+        df.loc["All","load_net_error_max_pos"]= self.latest_max_net_error_pos
         
         self.summary = df.T
         return df
