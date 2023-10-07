@@ -13,6 +13,7 @@ import numpy as np
 from datetime import datetime, timedelta
 import time
 import copy
+import re
 
 from grid_manager import MPC_op
 from data_loader import UCSD_dataloader
@@ -54,7 +55,7 @@ op_params_sample = {"K": 96,
             "energy_price_sell": 0.6, 
             "deg_model_opt": "unconscious",
             "ev_charge_rule": "flex",
-            "ev_charge_rule_default": "unif",
+            "ev_charge_rule_default": "alap",
             "p_grid_max": "1.5",}
 
 
@@ -78,14 +79,17 @@ class MPC_ExperimentManager(ExperimentManager):
         bat_params["deg_model"] = params.get("deg_model", "DOD")
         bat_params["bat_capacity"] = params.get("B_kWh", 350)
         strategy = params.get("strategy", "optimal")
+        
+        exe_K = params.get("exe_K",4)
         op_params["deg_model_opt"] = params.get("deg_model_opt", "rainflow") 
         op_params["ev_charge_rule"] = params.get("ev_charge_rule", "flex")
         op_params["energy_price_sell"] = params.get("price_sell", "rainflow")
         op_params["dc_price"] = params.get("price_dc", 0.6) 
-        p_grid_max = params.get("p_grid_max", "1.5") 
+        p_grid_max = params.get("p_grid_max", "5") 
         op_params["penalty_coef"]=params.get("penalty_coef", 0)
         op_params["sol_save_steps"] = params.get("sol_save_steps",0)
         op_params["dc_formulation"]=params.get("dc_formulation", "moving")
+        op_params["ev_charge_rule_default"]=params.get("ev_charge_rule_default", "alap")
         
         op_params["p_grid_max_method"]=params.get("p_grid_max_method","by_solution")
         op_params["p_grid_max"] = None if p_grid_max is None else str(p_grid_max)
@@ -118,37 +122,54 @@ class MPC_ExperimentManager(ExperimentManager):
         
         simple_bld_kws={
             'rule':params.get('simple_bld_rule','week'),
-            'num':int(params.get('simple_bld_num',4)),
-            'exp_alpha':params.get('simple_bld_exp_alpha',0.1),
+            'num':int(params.get('simple_bld_num',1)),
+            'exp_alpha':params.get('simple_bld_exp_alpha',0.02),
         }
         
         simple_pv_kws={
             'rule':params.get('simple_pv_rule','day'),
             'num':int(params.get('simple_pv_num',4)),
-            'exp_alpha':params.get('simple_pv_exp_alpha',0.1),
+            'exp_alpha':params.get('simple_pv_exp_alpha',0.2),
         }
         
         simple_ev_kws={
             'rule':params.get('simple_ev_rule','week'),
             'num':int(params.get('simple_ev_num',1)),
         }
+        run_bat=params.get('run_bat_as_sol',True)
+        if run_bat in [False, "FALSE", "False", "false", 0]:
+            run_bat_as_sol=False
+        elif run_bat in [True, "TRUE", "True", "true", 1]:
+            run_bat_as_sol=True
         
         if bld is None or pv is None or ev is None:
             raise Exception("Building related params are not prepoperly initiated")
-
+        '''
         def convert_time(s):
             idx_hyphen = s.index("-")
             month, day = int(s[:idx_hyphen]), int(s[idx_hyphen+1:])
             return datetime(2019, month, day, 0, 0)
+        '''
+        def convert_time(s):
+            numbers = re.findall(r'\d+',s)
+            assert len(numbers)>=2 and len(numbers)<=4
+            time = [10,1,0,0]
+            for i in range(len(numbers)):
+                time[i] = int(numbers[i]) 
+            return datetime(2019, time[0], time[1], time[2], time[3])
+        t_start = convert_time("10-1-0-30")
+        
         t_start = convert_time(params.get("start", "10-1"))
         
         t_end = convert_time(params.get("end", "10-8"))
         '''
-        t_end=t_start+timedelta(hours=0.5)
-        month_dic=[31,28,31,30,31,30,31,31,30,31,30,31]
+        t_end=t_start+timedelta(hours=2)
+        #month_dic=[31,28,31,30,31,30,31,31,30,31,30,31]
+        month_dic=[2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2]
         month=int(params.get("month_of_year",3))
-        op_params["K"]=96*month_dic[month-1]
-        print("K=",op_params["K"])'''
+        op_params["K"]=96*month_dic[month-1]'''
+        
+        print("K=",op_params["K"])
         
         mpc = MPC_op()
 
@@ -179,7 +200,7 @@ class MPC_ExperimentManager(ExperimentManager):
         mpc.init_op_params(optimizer=Battery_optimizer, optimizer_params=optimizer_params, delta_0=0.25, **op_params)
 
         # Step 4: specify battery
-        mpc.init_battery(model=Battery_base, params=bat_params, delta_0=0.25)
+        mpc.init_battery(model=Battery_base, params=bat_params, delta_0=0.5)
 
         # Step 5: initialize predictor
         # [Yi, 2023/03/08] modify predictor def
@@ -204,7 +225,7 @@ class MPC_ExperimentManager(ExperimentManager):
             checkpoints="1D", recovery=True, recovery_from=None,
             )
 
-        mpc.run(tstart=t_start, tend=t_end, exe_K=4, save=True, fork_id=fork_id)
+        mpc.run(tstart=t_start, tend=t_end, exe_K=exe_K, save=True, fork_id=fork_id, run_bat_as_sol=run_bat_as_sol)
         
         stats = dict(mpc.summary["All"])
         

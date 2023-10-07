@@ -18,7 +18,7 @@ import copy
 
 first_start=True
 
-run_bat_as_sol=False
+
 
 
 """
@@ -91,14 +91,14 @@ class MPC_op():
         self.latest_max_net_error_pos=0
         
         self.first_start_flag=0
-        self.lastest_p_prev_max=None
+        self.lastest_p_prev_max=0
 
 
     """ the following methods are PUBLIC methods
         i.e., you can call them directly outside    
     """
 
-    def run(self, tstart=None, tend=None, exe_K=1, t_cut=False, save=False, fork_id=None):
+    def run(self, tstart=None, tend=None, exe_K=1, t_cut=False, save=False, fork_id=None, run_bat_as_sol=False):
         
         # check source data & predictor has been initialized
         if self.data is None:
@@ -115,7 +115,7 @@ class MPC_op():
         
         self.op_log = pd.DataFrame(
             index = pd.date_range(tstart, tend, freq="{}H".format(self.delta_0)),
-            columns = ["p_grid","sol_p_grid", "bat_p", "bat_e", "ev_p", "ev_I", "sol_ev_p",
+            columns = ["p_grid","sol_p_grid", "bat_p", "bat_e", "ev_p", "ev_I", "unseen_ev_I", "sol_ev_p",
                         "load_bld", "load_pv","net_load", "tou_import", "tou_export",
                         "opex", "solve_time","latest_p_grid_max",
                         "load_bld_error","load_pv_error",
@@ -175,7 +175,8 @@ class MPC_op():
             # [Lunlong, 2023/08/08] to get the summary at first time step
             if save == True and t == tstart:
                 temp_MPC_op=copy.deepcopy(self)
-                temp_MPC_op.run_k_steps(t=t, exe_K=exe_K, t_cut=t_cut, fork_id=fork_id, tstart=tstart)
+                print("self.op_params[K]:",self.op_params["K"])
+                temp_MPC_op.run_k_steps(t=t, exe_K=self.op_params["K"]-1, t_cut=t_cut, fork_id=fork_id, tstart=tstart,run_bat_as_sol=run_bat_as_sol)
                 op_log_temp = temp_MPC_op.op_log.dropna().copy()
                 assert len(op_log_temp)>0
                 self.summary_one_step=temp_MPC_op.op_summary(op_log_temp).copy().T
@@ -195,7 +196,7 @@ class MPC_op():
             print(e)
             raise KeyboardInterrupt()
             '''
-            self.run_k_steps(t, exe_K=exe_K, t_cut=t_cut, fork_id=fork_id, tstart=tstart)
+            self.run_k_steps(t, exe_K=exe_K, t_cut=t_cut, fork_id=fork_id, tstart=tstart, run_bat_as_sol=run_bat_as_sol)
             t += timedelta(hours=self.delta_0*exe_K)
         
         # save records when all complete
@@ -391,10 +392,11 @@ class MPC_op():
         i.e., don't call them directly outside
     """
 
-    def run_k_steps(self, t, exe_K=1, t_cut=False, fork_id=None, tstart=None):
+    def run_k_steps(self, t, exe_K=1, t_cut=False, fork_id=None, tstart=None, run_bat_as_sol=False):
         # 0. start clock
         t_clock = time.perf_counter()
-        print("="*20, t,"thread_id:",str(fork_id), "="*20)    # FIXME: do not print too frequent
+        if t.hour == 0:
+            print("="*20, t,"thread_id:",str(fork_id), "="*20)    # FIXME: do not print too frequent
         
         
         """ STEP-1. update EV new_arrivals & new_departs """
@@ -578,7 +580,7 @@ class MPC_op():
                 bat_e = self.battery.get_states("e_curr")
                 
                 # update ev charge
-                ev_p = self.update_ev_charge(t, sol=sol, exe_k=k)
+                ev_p, unseen_evs = self.update_ev_charge(t, sol=sol, curr_k=k, exe_K=exe_K)
                 # [Yi, 2023/02/11]: add ev_I to track
                 ev_p_sum, ev_I = np.sum(ev_p), len(ev_p)
 
@@ -592,7 +594,7 @@ class MPC_op():
                 
                 sol_ev_p=0
                 for i in sol["ev_p"][0]:
-                    sol_ev_p+=i[0]
+                    sol_ev_p+=i[k]
                 
                 '''old way of execution end'''
                 
@@ -605,7 +607,7 @@ class MPC_op():
                 bat_p = sol["bat_p"][0][k]
                 
                 # update ev charge
-                ev_p = self.update_ev_charge(t, sol=sol, exe_k=k)
+                ev_p, unseen_evs = self.update_ev_charge(t, sol=sol, curr_k=k, exe_K=exe_K)
                 # [Yi, 2023/02/11]: add ev_I to track
                 ev_p_sum, ev_I = np.sum(ev_p), len(ev_p)
 
@@ -617,7 +619,8 @@ class MPC_op():
                 p_grid = load_bld - load_pv + ev_p_sum - bat_p
                 # bat_p neg means charging, pos means discharging
                 
-                if p_grid>sol["p_grid"][0][k]:
+                if p_grid>sol["p_grid"][0][k]+0.01:
+                    #print("Compensation involved!")
                     if p_grid>self.lastest_p_prev_max:
                         mismatch=p_grid-self.lastest_p_prev_max
                         
@@ -637,7 +640,7 @@ class MPC_op():
                 
                 sol_ev_p=0
                 for i in sol["ev_p"][0]:
-                    sol_ev_p+=i[0]
+                    sol_ev_p+=i[k]
                 
                 '''new way of execution end'''
             
@@ -798,6 +801,7 @@ class MPC_op():
                 "sol_p_grid":sol["p_grid"][0][k],
                 "p_grid": p_grid, "bat_p": bat_p, "bat_e": bat_e,
                 "ev_p": ev_p_sum, "sol_ev_p": sol_ev_p, "ev_I": ev_I,
+                "unseen_ev_I": unseen_evs,
                 "net_load": ev_p_sum+load_bld+load_pv,
                 "load_bld": load_bld, "load_pv": load_pv,
                 "tou_import": price_buy, "tou_export": price_sell,
@@ -1029,17 +1033,20 @@ class MPC_op():
                             (ev_params["td"]-ev_params["ta"])*\
                             ev_params["Pmax"]*params["eta"]*self.delta_0))
         
-    def update_ev_charge(self, t, sol, exe_k=0):
+    def update_ev_charge(self, t, sol, curr_k=0, exe_K=1):
         
         # todo: the update index relationship of none_GT prediction havent been checked yet
         # t: use the original t, calculate here
-        t_curr = t+timedelta(hours=self.delta_0*exe_k)
+        t_curr = t+timedelta(hours=self.delta_0*curr_k)
         # ! update_onsite_ev before updating charge
         self.update_onsite_ev(t_curr)
         
         onsite = self.ev_log.onsite_table
+        redundancy=1.001
+        unseen_ev_idx=[]
+        unseen_ev_I=0
         
-        if exe_k == 0:    
+        if curr_k == 0:    
             p = list(sol["ev_p"][0][range(len(onsite)),0])
             self.cache["ev_p_sol"] = sol["ev_p"][0]
             # [Yi, 2023/03/19] FIXME
@@ -1053,7 +1060,8 @@ class MPC_op():
             #//set_diff=set(onsite.index)-set(ev_index)
             #//if len(set_diff)>0:
             #//    print("set_diff:",set_diff)
-                
+            
+            #unseen_ev_p=0
             for idx in onsite.index:
                 if idx in ev_index: # if EV idx' power has been optimized
                     # FIXME
@@ -1061,7 +1069,7 @@ class MPC_op():
                     #   ev_p_sol is np.ndarray, not dataframe, thus
                     #   ev_p_sol.loc[...] -> ev_p_sol[...]
                     # // print("ev_index.index(idx):",ev_index.index(idx))
-                    p.append(ev_p_sol[ev_index.index(idx), exe_k])
+                    p.append(ev_p_sol[ev_index.index(idx), curr_k])
                 else:   
                     # [Yi, 2023/03/19]: if optimizer has never seen EV idx 
                     #   rule = op_params["ev_charg_rule_default"] 
@@ -1070,10 +1078,41 @@ class MPC_op():
                     #   charge at Pmax, but not exceed e_targ
                     p_max = onsite.loc[idx, "Pmax"]
                     e_req = onsite.loc[idx, "e_targ"] - onsite.loc[idx, "e"]
+                    ta = onsite.loc[idx, "ta"]
+                    td = onsite.loc[idx, "td"]
+                    efficacy = self.op_params["ev_efficacy"]
+                    unseen_ev_idx.append(idx)
+                    unseen_ev_I+=1
                     if self.op_params["ev_charge_rule_default"] == "unif":
-                        p_req = e_req / self.op_params["ev_efficacy"] / self.delta_0
+                        p_req = e_req / efficacy / self.delta_0
                     elif self.op_params["ev_charge_rule_default"] == "asap":
-                        p_req = e_req / self.op_params["ev_efficacy"] / self.delta_0
+                        p_req = e_req / efficacy / self.delta_0
+                        
+                    elif self.op_params["ev_charge_rule_default"] == "alap":
+                        # charge as less as possible before solving CFTOC the next time
+                        # time of next optimization
+                        t_next_sol=t_curr+timedelta(hours=(exe_K-curr_k+1)*self.delta_0)
+                        # charging period left for next optimization 
+                        t_future_sol = (td-t_next_sol).total_seconds()/3600
+                        t_future_sol = max(0, t_future_sol) # may <0, if td is within current scope
+                        # if e_req can be satisfied in the next optimization, omit it
+                        if t_future_sol*efficacy*p_max > e_req * redundancy: 
+                            p_req=0
+                        # else charge the minimum but avoid infeasibility
+                        else:
+                            # ! Whether the executor know EV right after coming? 
+                            # time left before next optimization
+                            t_before_next_sol=min((t_next_sol-ta).total_seconds()/3600,\
+                                (t_next_sol-t_curr).total_seconds()/3600)
+                            # time left before EV departure
+                            t_before_td=min((td-ta).total_seconds()/3600,\
+                                (td-t_curr).total_seconds()/3600)
+                            
+                            t_available=min(t_before_next_sol,t_before_td)
+                            p_req = (e_req-(t_future_sol*efficacy*p_max)) \
+                                / t_available / efficacy
+                        
+                        
                     p.append(min(p_max, p_req))
         charge_log = dict(zip(onsite.index, p))    
         # [Yi, 2023/03/19] t -> t_curr
@@ -1082,7 +1121,8 @@ class MPC_op():
         # // self.update_onsite_ev(t_curr)
         self.update_onsite_ev(t_curr)
         # [Yi, 2023/02/11] return np.sum(p) -> return p
-        return p
+        #unseen_ev_I=len(unseen_ev_idx)
+        return p, unseen_ev_I
 
     def op_summary(self, op_log):
         

@@ -61,13 +61,14 @@ class Predictor():
 
     def set_predictor(self, shortcut, bld=None, pv=None, ev=None, price_buy=None, price_sell=None, shift=None,shift_ratio=0,Simple_dic=None,
                  distb_bld_kws=None, 
-                 simple_bld_kws={"rule": "week", "num": 4, "exp_alpha": 0.1},
-                 simple_pv_kws= {"rule": "day", "num": 7, "exp_alpha": 0.1}, 
+                 simple_bld_kws={"rule": "week", "num": 1, "exp_alpha": 0.02},
+                 simple_pv_kws= {"rule": "day", "num": 4, "exp_alpha": 0.2}, 
                  simple_ev_kws={"rule": "week", "num": 1}, 
                  price_buy_kws=None, price_sell_kws=None,**predictors):
 
         predictor_tmp = predictors
-        
+        print(simple_bld_kws)
+        print(simple_pv_kws)
         # default dic for Simple:
         Simple={
                 "bld": Predictor_load_Simple, "bld_kws": simple_bld_kws,#{"rule": "week", "num": 4, "exp_alpha": 0.1},#"bld": Predictor_load_GT, "bld_kws": None,
@@ -440,6 +441,59 @@ def find_dates(t, K, delta, rule, num, ev=False):
     
     return ts    
 
+def find_dates_ev(t, K, delta, week_num, day_num):
+    ts=[]
+    tstart = t - timedelta(days = 7*week_num)
+    for k in [0]:
+        for i in range(week_num):
+            t0 = tstart + timedelta(days = 7*i+k)
+            t1 = t0 +timedelta(hours=K*delta) 
+            days_diff=7*(i+1)+k
+            ts.append((t0, t1, days_diff))
+            
+    tstart = t - timedelta(days = 1*day_num)
+    for i in range(day_num):
+        for k in [0]:
+            t0 = tstart + timedelta(days = 1*i+k)
+            t1 = t0 +timedelta(hours=K*delta) 
+            days_diff=1*(i+1)+k
+            ts.append((t0, t1, days_diff))
+            
+    tstart = t - timedelta(days = 7*week_num)
+    for k in [-1,1]:
+        for i in range(week_num):
+            t0 = tstart + timedelta(days = 7*i+k)
+            t1 = t0 +timedelta(hours=K*delta) 
+            days_diff=7*(i+1)+k
+            ts.append((t0, t1, days_diff))
+            
+    tstart = t - timedelta(days = 7*week_num)
+    for k in [-2,2,-3,3,-4,4]:
+        for i in range(week_num):
+            t0 = tstart + timedelta(days = 7*i+k)
+            t1 = t0 +timedelta(hours=K*delta) 
+            days_diff=7*(i+1)+k
+            ts.append((t0, t1, days_diff))
+    #tstart = t - timedelta(days = 1*day_num)
+    return ts
+
+import holidays
+
+def get_date_attr(date):
+    us_holidays = holidays.US()
+    '''
+    if date-timedelta(days=1) in us_holidays or (date-timedelta(days=1)).weekday()>=5:
+        return "post_holiday"
+    if date+timedelta(days=1) in us_holidays or (date+timedelta(days=1)).weekday()>=5:
+        return "pre_holiday"
+    '''
+    if date in us_holidays or date.weekday()>=5:
+        return "holiday"
+    else:
+        return "workday"
+    '''    
+    '''
+
 
 
 """ Support following rules
@@ -599,7 +653,93 @@ class Predictor_ev_Simple(Predictor_ev_GT):
         if self.rule == "naive":
             return None
         
-        ts = find_dates(t, K, delta, self.rule, self.num, ev=True)
+        
+        # new prediction method start
+        '''
+        week_num, day_num=1,1
+        ts = find_dates_ev(t, K, delta, week_num, day_num)
+        
+        def split_date(t, K, delta):
+            split_period=[]
+            date_attrs=[]
+            date_attr_curr=get_date_attr(t)
+            date_attr_i=get_date_attr(t)
+            t_i=t
+            flag=0
+            for i in range(K):
+                t+=timedelta(hours=delta)
+                if i<K-1:
+                    if get_date_attr(t)!=date_attr_curr or ((t.hour==0)&(t.minute==0)): # or ((t.hour==0)&(t.min==0))
+                        split_period.append([t_i,t])
+                        date_attrs.append(date_attr_i)
+                        date_attr_curr=get_date_attr(t)
+                        t_i=t 
+                        date_attr_i=get_date_attr(t)
+                        flag+=1  
+                    else:
+                        continue
+            #if flag==0:
+            split_period.append([t_i,t])
+            date_attrs.append(date_attr_i)
+            #print(split_period)
+            #print(date_attrs)
+            return split_period, date_attrs
+        
+        split_date_to_pred, date_attr_to_pred=split_date(t, K, delta)
+        #print("period to predict:",split_date_to_pred,date_attr_to_pred)
+        split_date_ref=[]
+        
+        for i in range(len(split_date_to_pred)):
+            valid=0
+            tmp=[]
+            for ts_i,ts_e,days_diff in ts:
+                split_date_i, date_attr_i=split_date(ts_i, K, delta)
+                if date_attr_i[i]==date_attr_to_pred[i] and valid<3: #
+                    tmp.append([split_date_i[i][0],split_date_i[i][1],days_diff])
+                    valid+=1
+                if valid>=3:
+                    break
+            split_date_ref.append(tmp)
+            assert valid>0
+        
+        #print("pred ref:",split_date_ref)
+        pred_to_concat=[]
+        for date_ref in split_date_ref:
+            to_concat=[]
+            valid_periods=0
+            for t0,t1,days_diff in date_ref:
+                valid_periods+=1
+                sig= (ev_sessions["ta"] >= t0) & (ev_sessions["ta"] < t1)
+                evs=ev_sessions.loc[sig].copy()
+                evs["ta"]=evs["ta"]+timedelta(days=days_diff)
+                evs["td"]=evs["td"]+timedelta(days=days_diff)
+                day_diff = (t - evs["ta"]).dt.ceil(freq="D")
+                evs["ta"] = evs["ta"] + day_diff
+                evs["td"] = evs["td"] + day_diff
+            
+                to_concat.append(evs)
+            pred_before_sample = pd.concat(to_concat, axis=0)
+                
+            if valid_periods > 1:
+                N = len(pred_before_sample)
+                #print("valid-p:",valid_periods)
+                n_sample = round(N / valid_periods)
+                rand_seed = (t - datetime(2000,1,1,0,0)).total_seconds() % 2023 # set an arbitrary random seed
+                np.random.seed(int(rand_seed))
+                idx_sample = np.random.choice(N, size=n_sample, replace=False)
+                pred = pred_before_sample.iloc[idx_sample].copy()
+            else:
+                pred = pred_before_sample.copy()
+            pred_to_concat.append(pred)
+            
+        pred=pd.concat(pred_to_concat, axis=0)
+        #assert pred["td"]<=(t+timedelta(hours=K*delta))
+        '''
+        # new prediction method end
+        
+        # previous prediction method start
+        
+        ts = find_dates(t,K,delta,rule=self.rule,num=self.num, ev=True)
         to_concat = []
         for t0, t1 in ts:
             sig = (ev_sessions["ta"] >= t0) & (ev_sessions["ta"] < t1)
@@ -624,7 +764,11 @@ class Predictor_ev_Simple(Predictor_ev_GT):
         pred["ta"] = pred["ta"] + day_diff
         pred["td"] = pred["td"] + day_diff
         # "td_actual" will not be used
-
+        
+        # previous prediction method end
+        
+        #for i in pred.index:
+        #    assert pred.loc[i,'e_targ']/((pred.loc[i,'td']-pred.loc[i,'ta']).total_seconds()/3600)/0.98<pred.loc['Pmax']
         return pred
 
 

@@ -52,7 +52,7 @@ def get_merged_df(file_folder=None,log_fn=None,id_exe_unne=None, id_sol_nece=Non
     df_by_exe=pd.read_excel(fn_by_exe, sheet_name="op_log",index_col=0)["latest_p_grid_max"].interpolate()
     df_by_sol=pd.read_excel(fn_by_sol, sheet_name="op_log",index_col=0)["latest_p_grid_max"].interpolate()
     df_mini=pd.read_excel(fn_mini, sheet_name="op_log",index_col=0)["latest_p_grid_max"].interpolate()
-    df_error=pd.read_excel(fn_by_exe, sheet_name="op_log",index_col=0)["load_bld_error"].interpolate()
+    df_error=pd.read_excel(fn_by_exe, sheet_name="op_log",index_col=0)["net_load_error"].interpolate()
     
     # Merge the Series into a DataFrame
     df_merged = pd.merge(df_by_exe, df_by_sol, left_index=True, right_index=True)
@@ -60,21 +60,32 @@ def get_merged_df(file_folder=None,log_fn=None,id_exe_unne=None, id_sol_nece=Non
     df_merged = pd.merge(df_merged, df_error, left_index=True, right_index=True)
 
     # Rename the columns
-    df_merged.columns = ['actual_p_max', 'necessary', 'minimized', 'load_pred_error']
+    df_merged.columns = ['actual_p_max', 'necessary', 'minimized', 'net_load_error']
     df_merged['unnecessary']=df_merged["necessary"]-df_merged["actual_p_max"]
     df_merged['unnecessary_minimized']=df_merged["necessary"]-df_merged["minimized"]
+    
+    df_merged['latest_max_neg_net_load_error']=0
+    mini=0
+    for i in df_merged.index:
+        if df_merged.loc[i]["net_load_error"]<mini:
+            mini=df_merged.loc[i]["net_load_error"]
+        df_merged.loc[i,"latest_max_neg_net_load_error"]=mini
+        
+    
     print(type(df_merged))
     return df_merged
 
-def plot_track_p_max(df_merged,figsize,line_keys=['actual_p_max','necessary','unnecessary'],linewidth=1,
-                     plot_error_bar=False, ylimit_main=[-150,250],ylimit_sub=[-150,250],
+def plot_track_p_max(df_merged,figsize,line_keys=['actual_p_max','necessary','unnecessary'],linewidth=1,month='May',
+                     plot_error_bar=False,error_bar_width=0.01, ylimit_main=[-150,250],ylimit_sub=[-150,250],plot_error_line=True,
                      inside_start_day=5,inside_days=1,legend_loc="lower right",track_real=False,shadow=False,
                      save_fn=None,ax=None,axins=None):
         line_clr_dic={
                 'actual_p_max':'teal',
                 'necessary':'green',
                 'unnecessary':'coral',
-                'unnecessary_minimized':'purple'
+                'unnecessary_minimized':'purple',
+                "latest_max_neg_net_load_error":'red'
+                
         }
         axin_color='steelblue'
         
@@ -94,7 +105,7 @@ def plot_track_p_max(df_merged,figsize,line_keys=['actual_p_max','necessary','un
                 else :
                     ax.plot(df_merged.index, df_merged[key],label=key,color=line_clr_dic[key],linewidth=linewidth)
             if plot_error_bar:
-                ax.bar(df_merged.index, df_merged["load_pred_error"])
+                ax.bar(df_merged.index, df_merged["net_load_error"],width=error_bar_width,color='dimgray')
             ax.yaxis.set_major_formatter(lambda x, pos: f'{abs(x):g}')
             ax.margins(x=0.01)
             ax.hlines(y=0,xmin=df_merged.index[0],xmax=df_merged.index[-1],linestyles='--',colors='gray',linewidth=0.6,alpha=0.6)
@@ -103,15 +114,17 @@ def plot_track_p_max(df_merged,figsize,line_keys=['actual_p_max','necessary','un
             ax.tick_params(axis='both',which='major',labelsize=ticklabel_fs)
 
         plot_ax_data(ax=ax)
+        '''
         ax.text(x=0.55,y=0.76,s='$necessary$',ha='center',va='center',transform=ax.transAxes,color='darkgreen')
         if group_plot==False:
             ax.text(x=0.55,y=0.28,s='$unnecessary$',ha='center',va='center',transform=ax.transAxes,color='orange')
         else:
             ax.text(x=0.55,y=0.28,s='$unnecessary$ $(track-real)$',ha='center',va='center',transform=ax.transAxes,color='orange',fontsize=label_fs-2)
         if track_real==True:
-            ax.text(x=0.55,y=0.5,s='$unnecessary$',ha='center',va='center',transform=ax.transAxes,color='purple')
+            ax.text(x=0.55,y=0.5,s='$unnecessary$',ha='center',va='center',transform=ax.transAxes,color='purple')'''
+            
         ax.set_ylim(ylimit_main)
-        ax.set_xlabel("Day of month (May-2019)",fontsize=label_fs,loc='center')
+        ax.set_xlabel("Day of month ("+month+"-2019)",fontsize=label_fs,loc='center')
         ax.set_ylabel("Peak demand till $t$ (kW)",fontsize=label_fs)
         ax.xaxis.set_major_formatter(mdates.DateFormatter('%d'))
         ax.xaxis.set_major_locator(mdates.HourLocator(interval=24*7))
@@ -119,7 +132,7 @@ def plot_track_p_max(df_merged,figsize,line_keys=['actual_p_max','necessary','un
         ax.tick_params(axis='x', rotation=0)
 
         ax.set_xticklabels(ax.get_xticklabels(),rotation=0,fontsize=ticklabel_fs)
-        #ax.legend(frameon=False,loc=legend_loc,fontsize=legend_fs)
+        ax.legend(frameon=False,loc=legend_loc,fontsize=legend_fs)
         ax.tick_params(axis='both',which='major',labelsize=ticklabel_fs)
         
         
@@ -147,7 +160,7 @@ def plot_track_p_max(df_merged,figsize,line_keys=['actual_p_max','necessary','un
         axins.xaxis.set_minor_locator(mdates.HourLocator(interval=1))
         #axins.set_xticklabels(axins.get_xticklabels(),rotation=0)
         axins.set_yticklabels([])
-        axins.set_xlabel("Hour of day (1-May)",fontsize=label_fs,loc='center')
+        axins.set_xlabel("Hour of day (1-"+month+")",fontsize=label_fs,loc='center')
         for loc in ['top','bottom','left','right']:
                 axins.spines[loc].set_color(axin_color)  
         axins.tick_params(axis='both',which='major',labelsize=ticklabel_fs)
@@ -743,8 +756,7 @@ def plot_origin_valid_bar(df,relative,limit,figsize,key,save_fn,fontsize,bbox_to
     plt.show()
     
     return ax
-
-     
+  
 def mplot_origin_valid_bar(params):
     
     
@@ -815,8 +827,8 @@ def mplot_origin_valid_bar(params):
             arrowy_e=np.array(df_valid[df_valid.label==arrow_end][new_key])
             print(range(len(arrawx)))
             for k in range(len(arrawx)):
-                axs[i].arrow(arrawx[k], arrowy_s[k], 0, (arrowy_e[k]-arrowy_s[k])*0.95,
-                            width=0.005*limit[1]/550,color='dimgray',alpha=0.4,head_width=0.4,head_length=3*limit[1]/550,
+                axs[i].arrow(arrawx[k], arrowy_s[k], 0, (arrowy_e[k]-arrowy_s[k])*0.99,
+                            width=0.005*limit[1]/550,color='dimgray',alpha=0.4,head_width=0.2,head_length=6*limit[1]/550,
                             length_includes_head=True)
 
         group=np.array(df['label'])
@@ -915,9 +927,7 @@ def mplot_origin_valid_bar(params):
     plt.show()
     
     return 
-     
-     
-        
+          
 def pre_process_dc_line(df):
     df=df.rename(columns={"grid_max":"mpc_grid_max", "OPEX":"mpc_opex","tou_cost":"mpc_tou_cost"})
     df['label']=df['start']+" to "+df["end"]
@@ -1012,7 +1022,6 @@ def plot_box(df,relative,limit,figsize,key,save_fn,fontsize):
     if save_fn is not None:
         plt.savefig(save_fn)
     plt.show()
-    
     
 def mplot_disturbance_type(params):
     fig, axs = plt.subplots(nrows=1, ncols=params["n_subplots"],
