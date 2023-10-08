@@ -103,16 +103,21 @@ def intersection_sum(prefix='BLD',postfix=None,fn_list=None,src_path=None,key=No
 class Data_encoder(): 
     '''
     init requires inputs like:
-        weather_setting_={
-            'weather_fn':'',
-            'keys':['temp','temp_min','temp_max'],
-            'shift':[3,3,3] 
-        }    
         data_setting_={
-            'data_fn':'RobinsonHall',
-            'src_path':r'D:/Codes/GIthub_repo/Energy_grid/data/UCSD_raw_data/',
-            'load_type':'BLD',
-            'split_date':'01-01-2019'
+            'weather_fn':r'L:/Coding_project/Energy_grid_new/data/UCSD_raw_data/Weather_SanDiego.csv',
+            'weather_keys':['temp','temp_min','temp_max','clouds_all','weather_main'],
+            'weather_shift':[3,3,3,3,3] ,
+            'load_from_existing_file':True,
+            'data_fn':'sum_real',
+            'src_path':r'L:/Coding_project/Energy_grid_new/XGBoost_pred/pv_load_origin/',
+            'save_prefix':'target_encode_3d_3h',
+            'save_folder':r'L:/Coding_project/Energy_grid_new/XGBoost_pred/model/',
+            'days_ahead':[1,2,3],
+            'hours_ahead':[1,0,-1],
+            'enable_target_encoding':True, 
+            'target_encoding_start':'01-Jan-2017',
+            'load_type':'PV',
+            'split_date':'01-Jan-2019'
         }
     '''      
     def __init__(self,data_setting_):
