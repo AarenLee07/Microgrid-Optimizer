@@ -592,6 +592,7 @@ class XGBoost_Optuna():
         self.best_model=model
         return model
     
+ 
     def predict_n_evaluate(self):
         if self.best_model is None:
             raise Exception("Please train best model before predicting.")
@@ -828,10 +829,14 @@ class Simple_forecast():
         '''
         #print(data_n.head(50))         
         for k in self.kwargs['metrics_steps']:
-            data_n['MAE_'+str(k)]=None
+            data_n['MAE_till'+str(k)]=None
+            #data_n[i,'E_'+str(k)]=None
+            #data_n[i,'E_'+str(k)]=data_n['RealPower_pred'][k]-data_n['future_real'][k]#np.array(data_n['RealPower_pred'][:k])-np.array(data_n['future_real'][:k])
             for i in indexes_pred:
-                data_n.loc[i,'MAE_'+str(k)]=\
+                data_n.loc[i,'MAE_till'+str(k)]=\
                     mean_absolute_error(data_n.at[i,'RealPower_pred'][:k],data_n.loc[i,'future_real'][:k])
+                data_n.loc[i,'E_'+str(k)]=data_n.at[i,'RealPower_pred'][k-1]-data_n.loc[i,'future_real'][k-1]
+                
             '''data_n['RMSE_'+str(k)]=None
             for i in indexes_pred:
                 data_n.loc[i,'RMSE_'+str(k)]=\

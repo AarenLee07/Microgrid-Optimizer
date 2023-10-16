@@ -252,9 +252,9 @@ def get_df_for_plot(method,fn_list):
         y_uniform.append(u)
         y_uniform_pos.append(p)
         y_uniform_neg.append(n)
-        y_uniform_mean.append(np.mean(u))
-        y_uniform_pos_mean.append(np.mean(p))
-        y_uniform_neg_mean.append(np.mean(n))
+        y_uniform_mean.append(np.nanmean(u))
+        y_uniform_pos_mean.append(np.nanmean(p))
+        y_uniform_neg_mean.append(np.nanmean(n))
     y_dic={
         'U':y_uniform,
         'U-':y_uniform_neg,
@@ -269,7 +269,8 @@ def get_df_for_plot(method,fn_list):
 
 def cluster_box_plot(figsize,
                      mape,y_dic,mean_dic,ylimit=(-10,180),
-                     mean_dic_old=None,ax=None,vol=True,
+                     y_dic_self_define=None,self_define_position=True,
+                     mean_dic_old=None,ax=None,vol=True,x_label='Default_label',
                      plot_line_new=True, plot_line_old=False, save_fn=None):
     if vol ==True:
         for dic in [y_dic,mean_dic,mean_dic_old]:
@@ -277,7 +278,11 @@ def cluster_box_plot(figsize,
                 for i in dic:
                     for k in range(len(dic[i])):
                         dic[i][k]=-dic[i][k]+100
-        ylimit=(-100,120)
+        if y_dic_self_define!=None:
+            for key in y_dic_self_define.keys():
+                for i in range(len(y_dic_self_define[key][0])):
+                    y_dic_self_define[key][0][i][3]=-y_dic_self_define[key][0][i][3]+100
+        #ylimit=(-100,120)
     
     if plot_line_old==True:
         assert mean_dic_old is not None
@@ -288,60 +293,159 @@ def cluster_box_plot(figsize,
     positions1=np.array(range(1,len(mape)+1))-figsize[0]/32
     positions2=np.array(range(1,len(mape)+1))
     positions3=np.array(range(1,len(mape)+1))+figsize[0]/32
+    
     color_dic={
         'U':'steelblue',
         'U-':'orangered',
-        'U+':'darkgreen'
+        'U+':'darkgreen',
+        #'dc=0':'darkgreen',
+        #'dc=18$/kWh':'orangered'
+        "XGBoost":'salmon',
+        "LR-PCo":'crimson',
+        "TFT":'blueviolet',
+        "LR":'chocolate',
+        #"TFT_NAIVE",
+        "DeepAR":'teal',
+        "Heuristic":'dodgerblue',
+        #'RF_NAIVE',
+    }
+    alpha_dic={
+        'U':0.15,
+        'U-':0.15,
+        'U+':0.15,
+        #'dc=0':'darkgreen',
+        #'dc=18$/kWh':'orangered'
+        "XGBoost":0.6,
+        "LR-PCo":0.5,
+        "TFT":0.5,
+        "LR":0.6,
+        #"TFT_NAIVE",
+        "DeepAR":0.7,
+        "Heuristic":0.7,
+        #'RF_NAIVE',
+    }
+    width_dic={
+        'U':0.5,
+        'U-':0.5,
+        'U+':0.5,
+        #'dc=0':'darkgreen',
+        #'dc=18$/kWh':'orangered'
+        "XGBoost":1,
+        "LR-PCo":1,
+        "TFT":1,
+        "LR":1,
+        #"TFT_NAIVE",
+        "DeepAR":1,
+        "Heuristic":1,
+        #'RF_NAIVE',
     }
     pos_dic={
         'U':positions1,
         'U-':positions2,
-        'U+':positions3
+        'U+':positions3,
+        #'dc=0':positions1,
+        #'dc=18$/kWh':positions3
+
     }
 
     boxs=[]
-    for key in color_dic.keys():
-        bplot=ax.boxplot(y_dic[key],positions=pos_dic[key],patch_artist=True,showmeans=True,widths=figsize[0]/40,        
-                boxprops={"facecolor": color_dic[key],
-                        "edgecolor": "w",
-                        "linewidth": 0,
-                        'alpha':0.4},
-                medianprops={"color": color_dic[key], "linewidth": 0},
-                meanprops={'marker':'+',
-                        'markerfacecolor':color_dic[key],
-                        'markeredgecolor':color_dic[key],
-                        'markersize':4.1*figsize[0]/8},
-                sym="",showfliers=True, showcaps=False,
-                whiskerprops={'color': 'w', 'linewidth': 1, 'linestyle': '--', 'alpha':0},
-                )
-        if plot_line_new==True:
-            lplot=ax.plot(pos_dic[key],mean_dic[key],linestyle='-',color=color_dic[key],alpha=0.2,linewidth=0.5)
-        if plot_line_old==True:
-            lplot=ax.plot(pos_dic[key],mean_dic_old[key],linestyle='--',marker='+',color=color_dic[key],
-                          alpha=0.5,linewidth=0.8,markersize=0*figsize[0]/8)
-        ax.set_xticks([])
-        ax.set_xticklabels([])
+    if self_define_position==False: 
+        for key in y_dic.keys():
+            bplot=ax.boxplot(y_dic[key],positions=pos_dic[key],patch_artist=True,showmeans=True,widths=figsize[0]/40,        
+                    boxprops={"facecolor": color_dic[key],
+                            "edgecolor": "w",
+                            "linewidth": 0,
+                            'alpha':0.4},
+                    medianprops={"color": color_dic[key], "linewidth": 0},
+                    meanprops={'marker':'+',
+                            'markerfacecolor':color_dic[key],
+                            'markeredgecolor':color_dic[key],
+                            'markersize':4.1*figsize[0]/8},
+                    sym="",showfliers=True, showcaps=False,
+                    whiskerprops={'color': 'w', 'linewidth': 1, 'linestyle': '--', 'alpha':0},
+                    )
+            if plot_line_new==True:
+                lplot=ax.plot(pos_dic[key],mean_dic[key],linestyle='-',color=color_dic[key],alpha=0.2,linewidth=0.5)
+            if plot_line_old==True:
+                lplot=ax.plot(pos_dic[key],mean_dic_old[key],linestyle='--',marker='+',color=color_dic[key],
+                            alpha=0.5,linewidth=0.8,markersize=0*figsize[0]/8)
+            ax.set_xticks([])
+            ax.set_xticklabels([])
+            boxs.append(bplot['boxes'][0])
+            
+        for i in range(len(positions2)):
+            if i%2==0:
+                diff=positions2[1]-positions2[0]
+                l=positions2[i]-diff/2
+                r=positions2[i]+diff/2
+                ax.fill_betweenx(ylimit, l,r, facecolor='dimgray', alpha=0.05)
+            
+    if self_define_position==True:  
+        assert y_dic_self_define!=None
+        labels=[]
+        positions=[]
+        minor=[]
+        
+        f_count=0
+        for key in y_dic_self_define.keys():
+            labels.append(str('%.3g' % key))
+            positions.append(y_dic_self_define[key][2])
+            for i in range(len(y_dic_self_define[key][0])):
+                values=np.array(y_dic_self_define[key][0][i][3])
+                position=y_dic_self_define[key][0][i][0]
+                c_key=y_dic_self_define[key][0][i][2]
+                width=y_dic_self_define[key][0][i][1]
+                #print(values,position,c_key,width)
+                bplot=ax.boxplot([values],positions=[position],patch_artist=True,showmeans=True,
+                                widths=[width],        
+                        boxprops={"facecolor": color_dic[c_key],
+                                "edgecolor": color_dic[c_key],
+                                "linewidth": width_dic[c_key],
+                                'alpha':alpha_dic[c_key]},
+                        medianprops={"color": color_dic[c_key], "linewidth": 0},
+                        meanprops={'marker':'+',
+                                'markerfacecolor':color_dic[c_key],
+                                'markeredgecolor':color_dic[c_key],
+                                'markersize':width*figsize[0]*50/len(y_dic_self_define.keys())},
+                        sym="",showfliers=True, showcaps=False,
+                        whiskerprops={'color': 'w', 'linewidth': 1, 'linestyle': '--', 'alpha':0},
+                        )
+                
+            if f_count%2==0 or f_count>12:
+                ax.fill_betweenx(ylimit, y_dic_self_define[key][1],y_dic_self_define[key][3], 
+                                 facecolor='dimgray', alpha=0.05)
+            f_count+=1
+            '''    
+            if plot_line_new==True:
+                lplot=ax.plot(pos_dic[key],mean_dic[key],linestyle='-',color=color_dic[key],alpha=0.2,linewidth=0.5)
+            if plot_line_old==True:
+                lplot=ax.plot(pos_dic[key],mean_dic_old[key],linestyle='--',marker='+',color=color_dic[key],
+                            alpha=0.5,linewidth=0.8,markersize=0*figsize[0]/8)'''
+        
+        #ax.set_xticks([])
+        #ax.set_xticklabels([])
+        ax.set_xticks(ticks=positions,minor=minor,labels=labels,fontsize=ticklabel_fs)
         boxs.append(bplot['boxes'][0])
         
     if vol ==True:
-        ax.hlines(y=100,linestyles=(0, (5, 8)),xmin=min(positions1)-2*figsize[0]/32,xmax=max(positions1)+4*figsize[0]/32,colors='gray',linewidth=0.7,alpha=0.4, zorder=1)
-        ax.hlines(y=0,linestyles=(0, (5, 8)),xmin=min(positions1)-2*figsize[0]/32,xmax=max(positions1)+4*figsize[0]/32,colors='gray',linewidth=0.7,alpha=0.4, zorder=2)
+        ax.axhline(y=100,dashes=(5, 8),xmin=0,xmax=1,color='gray',linewidth=0.7,alpha=0.4, zorder=1)
+        ax.axhline(y=0,dashes=(5, 8),xmin=0,xmax=1,color='gray',linewidth=0.7,alpha=0.4, zorder=2)
 
+    if self_define_position==False:
+        labels=[]
+        positions=[]
+        minor=[]
 
-    labels=[]
-    positions=[]
-    minor=[]
-    for i in range(len(mape)):
-        #labels.append("")
-        #minor.append(True)
-        #positions.append(positions1[i])
-        labels.append(str('%.3g' % mape[i]))
-        positions.append(positions2[i])
-        minor.append(False)
-        #labels.append("")
-        #positions.append(positions3[i])
-        #minor.append(True)
-    ax.set_xticks(ticks=positions,minor=minor,labels=labels,fontsize=ticklabel_fs)
+        for i in range(len(mape)):
+            try:
+                labels.append(str('%.3g' % mape[i]))
+            except:
+                labels.append(mape[i])
+            positions.append(positions2[i])
+            minor.append(False)
+        ax.set_xticks(ticks=positions,minor=minor,labels=labels,fontsize=ticklabel_fs)
+    
+    
     ax.tick_params(direction='in', axis="x", which='both')
 
     ax.set_ylim(ylimit)
@@ -354,18 +458,15 @@ def cluster_box_plot(figsize,
     # Set y-tick labels font size
     ax.tick_params(axis='y', labelsize=9)
     ax.tick_params(axis='x', labelsize=9)
-    ax.set_xlabel('MAPE (%)',loc='left',fontsize=label_fs)
+    #ax.set_xlabel('MAPE (%)',loc='left',fontsize=label_fs)
+    #ax.set_xlabel('Given ground truth (steps)',loc='left',fontsize=label_fs)
     
-    for i in range(len(positions2)):
-        if i%2==0:
-            diff=positions2[1]-positions2[0]
-            l=positions2[i]-diff/2
-            r=positions2[i]+diff/2
-            ax.fill_betweenx(ylimit, l,r, facecolor='dimgray', alpha=0.05)
+
 
     legend_elements=[]
     for key in color_dic.keys():
-        legend_elements.append(Patch(facecolor=color_dic[key], edgecolor='w',label=key,alpha=0.4))
+        legend_elements.append(Patch(facecolor=color_dic[key], edgecolor=color_dic[key],
+                                     label=key,alpha=alpha_dic[key],linewidth=width_dic[key]))
     #if plot_line_new==True:
     #legend_elements.append(Line2D([0], [0], marker='+', color='gray', label='Mean',linewidth=0,
     #        markerfacecolor='gray', markersize=8))
@@ -377,11 +478,12 @@ def cluster_box_plot(figsize,
                             markerfacecolor='gray', markersize=0))
     if vol==True:
         ax.legend(handles=legend_elements,loc='lower left',fontsize=legend_fs) 
-        ax.set_ylabel("Vol* (%)", fontsize=label_fs, labelpad=-5)
+        ax.set_ylabel("Vol* (%)", fontsize=label_fs, labelpad=0)
     else:
         ax.set_ylabel("Relative regret (%)", fontsize=label_fs)
         ax.legend(handles=legend_elements,loc='upper left',fontsize=legend_fs) 
-    ax.set_xlabel("MAPE (%)", loc='center',fontsize=label_fs)
+    #ax.set_xlabel("MAPE (%)", loc='center',fontsize=label_fs)
+    ax.set_xlabel(x_label,loc='center',fontsize=label_fs)
     
     if save_fn is not None:
         plt.savefig(save_fn)
@@ -1086,3 +1188,31 @@ def mplot_disturbance_type(params):
     plt.show()
     
     return
+
+
+def cal_relative_12mon(fn,drop_base,group_keys=['month_of_year']):
+    df=pd.read_excel(fn,sheet_name="Sheet1",index_col=0)
+    df_grouped=df.groupby(group_keys)
+    df_to_concat=[]
+    for i in df_grouped.groups.keys():
+        df=df_grouped.get_group(i)
+        lower_bound=df[(df.strategy=="optimal")&(df.pred_model=="GT")]["OPEX"].values[0]
+        upper_bound=df[(df.strategy=="MSC")&(df.pred_model=="GT")]["OPEX"].values[0]
+        diff=upper_bound-lower_bound
+        df["relative_OPEX"]=(df["OPEX"]-lower_bound)/diff*100
+        if drop_base:
+            df=df.drop(df[(df.pred_model=="GT")].index)
+        df_to_concat.append(df)
+    df=pd.concat(df_to_concat)
+    return df
+def get_df(fn,drop_base):
+    concat_k96_dc=cal_relative_12mon(fn,drop_base)
+    #concat_k96_dc['pred_K']=concat_k96_dc['exe_K']-concat_k96_dc['concat_K']
+    pred_K=concat_k96_dc['concat_K'].unique()
+    relative_dic_exeK96_dc=[]
+    mean=[]
+    for i in pred_K:
+        values=concat_k96_dc[concat_k96_dc.concat_K==i]['relative_OPEX'].unique()
+        relative_dic_exeK96_dc.append(values)
+        mean.append(values.mean())
+    return relative_dic_exeK96_dc,pred_K,mean
