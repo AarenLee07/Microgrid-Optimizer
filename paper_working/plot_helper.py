@@ -27,19 +27,157 @@ import matplotlib.dates as mdates
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from matplotlib.patches import ConnectionPatch
 
+######################################################################################
+
+# set default params of plot
+rc_={
+    "figure.dpi":300,
+    "font.size":10,
+    "axes.facecolor":"white",
+    "savefig.facecolor":"white",
+    "text.usetex":True,
+}
+
+color_dic_glb={
+        'MPC-GT-by_execution':'seagreen',# aquamarine
+        'MPC-Prediction-by_execution':'navy',
+        'MPC-Heuristic-by_execution':'orange',
+        'MPC-Heuristic-minimize_cap':'purple',
+        'MPC-Naive-by_execution':'slategray',
+        'MSC-GT-by_execution':'gray', #green
+        'MPC-Disturbance-by_execution':'purple',
+        'MSC-Naive':'grey',
+        
+        'MPC-DeepAR_optuna-by_execution':'steelblue', 
+        'DeepAR_optuna':                 'steelblue', 
+        'RBC-GT-by_execution':'orange',
+        'RBC-GT':             'orange',
+        'MPC-GT-by_execution':'seagreen', 
+        'MPC-GT':             'seagreen', 
+        'MPC-Simple-by_execution':'yellowgreen',
+        'Simple':                 'yellowgreen',
+        'MPC-LR_NAIVE-by_execution':'palevioletred', 
+        'LR_NAIVE':                 'palevioletred', 
+        'MPC-LR_PCo-by_execution':'teal',
+        'LR_PCo':                 'teal',
+        'MPC-TFT_optuna-by_execution':'orange', 
+        'TFT_optuna':                 'orange', 
+        'MPC-XGB-by_execution':'tomato',
+        'XGB':                 'tomato',
+    }
+
+color_dic_glb_w={
+        'MPC-GT-by_execution':'w',# aquamarine
+        'MPC-Prediction-by_execution':'w',
+        'MPC-Heuristic-by_execution':'w',
+        'MPC-Naive-by_execution':'w',
+        'MPC-Heuristic-minimize_cap':'w',
+        'MSC-GT-by_execution':'w', #green
+        'MPC-Disturbance-by_execution':'w',
+        'MSC-Naive-by_execution':'w',
+        
+        'MPC-DeepAR_optuna-by_execution':'w', 
+        'RBC-GT-by_execution':'w',
+        'MPC-GT-by_execution':'w', 
+        'MPC-Simple-by_execution':'w',
+        'MPC-LR_NAIVE-by_execution':'w', 
+        'MPC-LR_PCo-by_execution':'w',
+        'MPC-TFT_optuna-by_execution':'w', 
+        'MPC-XGB-by_execution':'w'
+    }
+
+marker_dic_glb_w={
+        'MPC-GT-by_execution':'_',
+        'MPC-Prediction-by_execution':'^',
+        'MPC-Heuristic-by_execution':'x',
+        'MPC-Naive-by_execution':'v',
+        'MPC-Heuristic-minimize_cap':'o',
+        'MPC-Disturbance-by_execution':'+',
+        'MSC-GT-by_execution':'_',
+        'MSC-Naive-by_execution':'_',
+        
+        'MPC-DeepAR_optuna-by_execution':'v', 
+        'DeepAR_optuna':                 'v', 
+        'RBC-GT-by_execution':'_',
+        'RBC-GT':             '_',
+        'MPC-GT-by_execution':'_', 
+        'MPC-GT':             '_', 
+        'MPC-Simple-by_execution':'o',
+        'Simple':                 'o',
+        'MPC-LR_NAIVE-by_execution':'purple', 
+        'LR_NAIVE':                 'purple', 
+        'MPC-LR_PCo-by_execution':'X',
+        'LR_PCo':                 'X',
+        'MPC-TFT_optuna-by_execution':'*', 
+        'TFT_optuna':                 '*', 
+        'MPC-XGB-by_execution':'P',
+        'XGB':                 'P',
+    }
+
+marker_dic_glb={
+        'MPC-GT-by_execution':'_',
+        'MPC-Prediction-by_execution':'_',
+        'MPC-Heuristic-by_execution':'x',
+        'MPC-Naive-by_execution':'_',
+        'MPC-Disturbance-by_execution':'_',
+        'MPC-Heuristic-minimize_cap':'o',
+        'MSC-GT-by_execution':'_',
+        'MSC-Naive-by_execution':'_',
+        
+        'MPC-DeepAR_optuna-by_execution':'^', 
+        'RBC-GT-by_execution':'_',
+        'MPC-GT-by_execution':'_', 
+        'MPC-Simple-by_execution':'x',
+        'MPC-LR_NAIVE-by_execution':'o', 
+        'MPC-LR_PCo-by_execution':'+',
+        'MPC-TFT_optuna-by_execution':'v', 
+        'MPC-XGB-by_execution':'s'
+    }
+marker_s_dict={
+        'MPC-GT-by_execution':1,
+        'MPC-Prediction-by_execution':1,
+        'MPC-Heuristic-by_execution':0.3,
+        'MPC-Naive-by_execution':1,
+        'MPC-Disturbance-by_execution':1,
+        'MPC-Heuristic-minimize_cap':0.3,
+        'MSC-GT-by_execution':1,
+        'MSC-Naive-by_execution':1,
+        
+        'MPC-DeepAR_optuna-by_execution':0.3, 
+        'RBC-GT-by_execution':1,
+        'MPC-GT-by_execution':1, 
+        'MPC-Simple-by_execution':0.3,
+        'MPC-LR_NAIVE-by_execution':0.3, 
+        'MPC-LR_PCo-by_execution':0.3,
+        'MPC-TFT_optuna-by_execution':0.3, 
+        'MPC-XGB-by_execution':0.3
+    }
+legend_dict={
+        'MPC-GT-by_execution':'MPC-GT',
+        'MPC-Prediction-by_execution':'MPC-Prediction',
+        'MPC-Heuristic-by_execution':'track real',
+        'MPC-Naive-by_execution':'MPC-Naive',
+        'MPC-Disturbance-by_execution':'MPC-Arti-Noise',
+        'MPC-Heuristic-minimize_cap':'track necessary (ours)',
+        'MSC-GT-by_execution':'RBC',
+        'MSC-Naive-by_execution':'MSC-Naive',
+        
+        'MPC-DeepAR_optuna-by_execution':'DeepAR', 
+        'RBC-GT-by_execution':'RBC',
+        'MPC-GT-by_execution':'MPC-GT', 
+        'MPC-Simple-by_execution':'Heuristic',
+        'MPC-LR_NAIVE-by_execution':'LR', 
+        'MPC-LR_PCo-by_execution':'LR-PCo',
+        'MPC-TFT_optuna-by_execution':'TFT', 
+        'MPC-XGB-by_execution':'XGBoost'
+        
+    }
 legend_fs=10
 label_fs=12
 ticklabel_fs=9
 title_fs=14
 
-rc_={
-    "figure.dpi":600,
-    "font.size":10,
-    "axes.facecolor":"white",
-    "savefig.facecolor":"white",
-    "text.usetex":True,
-    "legend.frameon":False
-}
+######################################################################################
 
 def get_merged_df(file_folder=None,log_fn=None,id_exe_unne=None, id_sol_nece=None, id_mini=None):
     log_df=pd.read_excel(log_fn,sheet_name="Sheet1")
@@ -78,13 +216,24 @@ def get_merged_df(file_folder=None,log_fn=None,id_exe_unne=None, id_sol_nece=Non
 def plot_track_p_max(df_merged,figsize,line_keys=['actual_p_max','necessary','unnecessary'],linewidth=1,month='May',
                      plot_error_bar=False,error_bar_width=0.01, ylimit_main=[-150,250],ylimit_sub=[-150,250],plot_error_line=True,
                      inside_start_day=5,inside_days=1,legend_loc="lower right",track_real=False,shadow=False,
+                     xlabel_l=None,xlabel_r=None,ylabel=None,
                      save_fn=None,ax=None,axins=None):
         line_clr_dic={
                 'actual_p_max':'teal',
                 'necessary':'green',
                 'unnecessary':'coral',
                 'unnecessary_minimized':'purple',
-                "latest_max_neg_net_load_error":'red'
+                "latest_max_neg_net_load_error":'red',
+                'accumated_neg':'indianred'
+                
+        }
+        label_dic={
+                'actual_p_max':'Peak demand till t',
+                'necessary':'green',
+                'unnecessary':'discr. w/GT',
+                'unnecessary_minimized':'purple',
+                "latest_max_neg_net_load_error":'Peak error- till t',
+                'accumated_neg':'Normalized acc. error(-) '
                 
         }
         axin_color='steelblue'
@@ -99,13 +248,13 @@ def plot_track_p_max(df_merged,figsize,line_keys=['actual_p_max','necessary','un
         def plot_ax_data(ax):
             for key in line_keys:
                 if key=='unnecessary' and shadow==False:
-                    ax.plot(df_merged.index, df_merged[key],label=key,color=line_clr_dic[key],linewidth=linewidth)
+                    ax.plot(df_merged.index, df_merged[key],color=line_clr_dic[key],linewidth=linewidth,label=label_dic[key])
                 elif key=='unnecessary' and shadow==True:
-                    ax.fill_between(df_merged.index,0,df_merged[key],facecolor='orange',alpha=0.3)
+                    ax.fill_between(df_merged.index,0,df_merged[key],facecolor='orange',alpha=0.3,label=label_dic[key])
                 else :
-                    ax.plot(df_merged.index, df_merged[key],label=key,color=line_clr_dic[key],linewidth=linewidth)
+                    ax.plot(df_merged.index, df_merged[key],color=line_clr_dic[key],linewidth=linewidth,label=label_dic[key])
             if plot_error_bar:
-                ax.bar(df_merged.index, df_merged["net_load_error"],width=error_bar_width,color='dimgray')
+                ax.bar(df_merged.index, df_merged["net_load_error"],width=error_bar_width,color='dimgray',label='Forecast error',alpha=0.6)
             ax.yaxis.set_major_formatter(lambda x, pos: f'{abs(x):g}')
             ax.margins(x=0.01)
             ax.hlines(y=0,xmin=df_merged.index[0],xmax=df_merged.index[-1],linestyles='--',colors='gray',linewidth=0.6,alpha=0.6)
@@ -124,8 +273,8 @@ def plot_track_p_max(df_merged,figsize,line_keys=['actual_p_max','necessary','un
             ax.text(x=0.55,y=0.5,s='$unnecessary$',ha='center',va='center',transform=ax.transAxes,color='purple')'''
             
         ax.set_ylim(ylimit_main)
-        ax.set_xlabel("Day of month ("+month+"-2019)",fontsize=label_fs,loc='center')
-        ax.set_ylabel("Peak demand till $t$ (kW)",fontsize=label_fs)
+        ax.set_xlabel(xlabel_l,fontsize=label_fs,loc='center')
+        ax.set_ylabel(ylabel,fontsize=label_fs)
         ax.xaxis.set_major_formatter(mdates.DateFormatter('%d'))
         ax.xaxis.set_major_locator(mdates.HourLocator(interval=24*7))
         ax.xaxis.set_minor_locator(mdates.HourLocator(interval=24))
@@ -160,7 +309,7 @@ def plot_track_p_max(df_merged,figsize,line_keys=['actual_p_max','necessary','un
         axins.xaxis.set_minor_locator(mdates.HourLocator(interval=1))
         #axins.set_xticklabels(axins.get_xticklabels(),rotation=0)
         axins.set_yticklabels([])
-        axins.set_xlabel("Hour of day (1-"+month+")",fontsize=label_fs,loc='center')
+        axins.set_xlabel(xlabel_r,fontsize=label_fs,loc='center')
         for loc in ['top','bottom','left','right']:
                 axins.spines[loc].set_color(axin_color)  
         axins.tick_params(axis='both',which='major',labelsize=ticklabel_fs)
@@ -298,8 +447,8 @@ def cluster_box_plot(figsize,
         'U':'steelblue',
         'U-':'orangered',
         'U+':'darkgreen',
-        #'dc=0':'darkgreen',
-        #'dc=18$/kWh':'orangered'
+        'dc=0':'darkgreen',
+        'dc=18$/kWh':'orangered',
         "XGBoost":'salmon',
         "LR-PCo":'crimson',
         "TFT":'blueviolet',
@@ -313,8 +462,8 @@ def cluster_box_plot(figsize,
         'U':0.15,
         'U-':0.15,
         'U+':0.15,
-        #'dc=0':'darkgreen',
-        #'dc=18$/kWh':'orangered'
+        'dc=0':0.4,
+        'dc=18$/kWh':0.4,
         "XGBoost":0.6,
         "LR-PCo":0.5,
         "TFT":0.5,
@@ -328,8 +477,8 @@ def cluster_box_plot(figsize,
         'U':0.5,
         'U-':0.5,
         'U+':0.5,
-        #'dc=0':'darkgreen',
-        #'dc=18$/kWh':'orangered'
+        'dc=0':0,
+        'dc=18$/kWh':0,
         "XGBoost":1,
         "LR-PCo":1,
         "TFT":1,
@@ -343,14 +492,16 @@ def cluster_box_plot(figsize,
         'U':positions1,
         'U-':positions2,
         'U+':positions3,
-        #'dc=0':positions1,
-        #'dc=18$/kWh':positions3
+        'dc=0':positions1,
+        'dc=18$/kWh':positions3
 
     }
+    used_keys=[]
 
     boxs=[]
     if self_define_position==False: 
         for key in y_dic.keys():
+            used_keys.append(key)
             bplot=ax.boxplot(y_dic[key],positions=pos_dic[key],patch_artist=True,showmeans=True,widths=figsize[0]/40,        
                     boxprops={"facecolor": color_dic[key],
                             "edgecolor": "w",
@@ -395,6 +546,7 @@ def cluster_box_plot(figsize,
                 position=y_dic_self_define[key][0][i][0]
                 c_key=y_dic_self_define[key][0][i][2]
                 width=y_dic_self_define[key][0][i][1]
+                used_keys.append(c_key)
                 #print(values,position,c_key,width)
                 bplot=ax.boxplot([values],positions=[position],patch_artist=True,showmeans=True,
                                 widths=[width],        
@@ -464,8 +616,10 @@ def cluster_box_plot(figsize,
 
 
     legend_elements=[]
-    for key in color_dic.keys():
-        legend_elements.append(Patch(facecolor=color_dic[key], edgecolor=color_dic[key],
+    used_keys=list(set(used_keys))
+    for key in color_dic:
+        if key in used_keys:
+            legend_elements.append(Patch(facecolor=color_dic[key], edgecolor=color_dic[key],
                                      label=key,alpha=alpha_dic[key],linewidth=width_dic[key]))
     #if plot_line_new==True:
     #legend_elements.append(Line2D([0], [0], marker='+', color='gray', label='Mean',linewidth=0,
@@ -511,76 +665,7 @@ if src_path not in sys.path:
 out_path = sys.path[0].replace("figures\visualization\script", "output")
 '''
 
-# set default params of plot
-rc_={
-    "figure.dpi":300,
-    "font.size":10,
-    "axes.facecolor":"white",
-    "savefig.facecolor":"white",
-    "text.usetex":True,
-}
 
-color_dic_glb={
-        'MPC-GT-by_execution':'seagreen',# aquamarine
-        'MPC-Prediction-by_execution':'navy',
-        'MPC-Heuristic-by_execution':'orange',
-        'MPC-Heuristic-minimize_cap':'purple',
-        'MPC-Naive-by_execution':'slategray',
-        'MSC-GT-by_execution':'gray', #green
-        'MPC-Disturbance-by_execution':'purple',
-        'MSC-Naive':'grey'
-    }
-color_dic_glb_w={
-        'MPC-GT-by_execution':'w',# aquamarine
-        'MPC-Prediction-by_execution':'w',
-        'MPC-Heuristic-by_execution':'w',
-        'MPC-Naive-by_execution':'w',
-        'MPC-Heuristic-minimize_cap':'w',
-        'MSC-GT-by_execution':'w', #green
-        'MPC-Disturbance-by_execution':'w',
-        'MSC-Naive-by_execution':'w'
-    }
-marker_dic_glb_w={
-        'MPC-GT-by_execution':'_',
-        'MPC-Prediction-by_execution':'^',
-        'MPC-Heuristic-by_execution':'x',
-        'MPC-Naive-by_execution':'v',
-        'MPC-Heuristic-minimize_cap':'o',
-        'MPC-Disturbance-by_execution':'+',
-        'MSC-GT-by_execution':'_',
-        'MSC-Naive-by_execution':'_'
-    }
-
-marker_dic_glb={
-        'MPC-GT-by_execution':'_',
-        'MPC-Prediction-by_execution':'_',
-        'MPC-Heuristic-by_execution':'x',
-        'MPC-Naive-by_execution':'_',
-        'MPC-Disturbance-by_execution':'_',
-        'MPC-Heuristic-minimize_cap':'o',
-        'MSC-GT-by_execution':'_',
-        'MSC-Naive-by_execution':'_'
-    }
-marker_s_dict={
-        'MPC-GT-by_execution':1,
-        'MPC-Prediction-by_execution':1,
-        'MPC-Heuristic-by_execution':0.3,
-        'MPC-Naive-by_execution':1,
-        'MPC-Disturbance-by_execution':1,
-        'MPC-Heuristic-minimize_cap':0.3,
-        'MSC-GT-by_execution':1,
-        'MSC-Naive-by_execution':1
-    }
-legend_dict={
-        'MPC-GT-by_execution':'MPC-GT',
-        'MPC-Prediction-by_execution':'MPC-Prediction',
-        'MPC-Heuristic-by_execution':'track real',
-        'MPC-Naive-by_execution':'MPC-Naive',
-        'MPC-Disturbance-by_execution':'MPC-Arti-Noise',
-        'MPC-Heuristic-minimize_cap':'track necessary (ours)',
-        'MSC-GT-by_execution':'RBC',
-        'MSC-Naive-by_execution':'MSC-Naive'
-    }
 
 def hex_to_RGB(hex_str):
     """ #FFFFFF -> [255,255,255]"""
@@ -631,11 +716,11 @@ def gradient_image(ax, direction=0.3, cmap_range=(0, 1), **kwargs):
 def pre_process(df,key,duration_key):
     df.set_index('id')
     
-    df=df[['strategy','pred_model',duration_key,key,'days','p_grid_max_method']]
+    df=df[['strategy','pred_method',duration_key,key,'days','p_grid_max_method']]
     df=df.replace('optimal',"MPC")
     df=df.replace("Simple","Heuristic")
     #df=df.replace("Simple-our-method","Heuristic-our-method")
-    df['label']=df['strategy']+'-'+df['pred_model']+'-'+df['p_grid_max_method']
+    df['label']=df['strategy']+'-'+df['pred_method']+'-'+df['p_grid_max_method']
     data=dict()
     
     for i in df[duration_key].unique():
@@ -911,8 +996,11 @@ def mplot_origin_valid_bar(params):
             
         if relative:
             new_key='relative_'+key
-            arrow_start='relative_'+arrow_start
-            arrow_end='relative_'+arrow_end
+            try:
+                arrow_start='relative_'+arrow_start
+                arrow_end='relative_'+arrow_end
+            except:
+                ...
         else:
             new_key=key
         df_valid=df#.drop(df[df.is_valid==False].index)
@@ -969,17 +1057,21 @@ def mplot_origin_valid_bar(params):
         axs[i].set_ylim(limit)
         
         if relative :
+            axs[i].axhline(y=100,linewidth=1,color='green',linestyle='--')
+            axs[i].axhline(y=0,linewidth=1,color='orange',linestyle='--')
             if ('MPC-Prediction' in params["labels_not_show"]) or\
                 ('MPC-Heuristic'in params["labels_not_show"]):
                     pass
             else:
+                ...
+                '''
                 x_coor=np.array([df_valid[df_valid.label=='MPC-Prediction-by_execution'][duration_key],\
                     df_valid[df_valid.label=='MPC-Prediction-by_execution'][duration_key]])
                 y_coor=np.array([df_valid[df_valid.label=='MPC-Heuristic-by_execution'][new_key],\
                     df_valid[df_valid.label=='MPC-Prediction-by_execution'][new_key]])
                 axs[i].bar(x=x_coor[0],height=np.abs(y_coor[0]-y_coor[1]), \
                     bottom=min_help(y_coor[0],y_coor[1]),
-                    color='lightsteelblue',width=0.6,alpha=0.3,label="Prediction<Heuristic")
+                    color='lightsteelblue',width=0.6,alpha=0.3,label="Prediction<Heuristic")'''
             
         if not relative:
             x_coor_MPC_GT=np.array([df[df.label=='MPC-GT-by_execution'][duration_key],\
@@ -998,7 +1090,8 @@ def mplot_origin_valid_bar(params):
         if key=='grid_max':
             axs[i].set_ylabel("Peak demand (kW)",fontsize=label_fs)
         if key=='OPEX':
-            axs[i].set_ylabel("OPEX (k\$)",fontsize=label_fs)
+            #axs[i].set_ylabel("OPEX (k\$)",fontsize=label_fs)
+            axs[i].set_ylabel("VoI* (%)",fontsize=label_fs)
 
         #if (i==0)&(params["save_fn"]==None):
         #    axs[i].set_ylabel("Relative "*relative+key+" (Percentage)"*relative+"(\$/day)"*(not relative),fontsize=label_fs)
@@ -1022,7 +1115,7 @@ def mplot_origin_valid_bar(params):
             for handle in leg.legendHandles:
                 handle.set_color('black')
     else:
-        leg = axs[1].legend(loc='upper right', bbox_to_anchor=params["bbox_to_anchor"], fontsize=legend_fs)
+        leg = axs[0].legend(loc='lower left', bbox_to_anchor=params["bbox_to_anchor"], fontsize=legend_fs)
     
     if params["save_fn"] is not None:
         plt.savefig(params["save_fn"])

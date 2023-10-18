@@ -835,7 +835,10 @@ class Simple_forecast():
             for i in indexes_pred:
                 data_n.loc[i,'MAE_till'+str(k)]=\
                     mean_absolute_error(data_n.at[i,'RealPower_pred'][:k],data_n.loc[i,'future_real'][:k])
+                data_n.loc[i,'MAPE_till'+str(k)]=\
+                    mean_absolute_percentage_error(data_n.at[i,'RealPower_pred'][:k],data_n.loc[i,'future_real'][:k])
                 data_n.loc[i,'E_'+str(k)]=data_n.at[i,'RealPower_pred'][k-1]-data_n.loc[i,'future_real'][k-1]
+                data_n.loc[i,'MAPE_'+str(k)]=abs(data_n.at[i,'RealPower_pred'][k-1]-data_n.loc[i,'future_real'][k-1])/data_n.loc[i,'future_real'][k-1]
                 
             '''data_n['RMSE_'+str(k)]=None
             for i in indexes_pred:
