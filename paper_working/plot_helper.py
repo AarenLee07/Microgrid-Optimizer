@@ -50,20 +50,46 @@ color_dic_glb={
         
         'MPC-DeepAR_optuna-by_execution':'steelblue', 
         'DeepAR_optuna':                 'steelblue', 
+        'DeepAR':                        'steelblue', 
+        
         'RBC-GT-by_execution':'orange',
         'RBC-GT':             'orange',
+        
         'MPC-GT-by_execution':'seagreen', 
         'MPC-GT':             'seagreen', 
+        
         'MPC-Simple-by_execution':'yellowgreen',
         'Simple':                 'yellowgreen',
+        'Heuristic':              'yellowgreen',
+        'ESH':                    'yellowgreen',
+        'AMA':                    'yellowgreen',
+        
         'MPC-LR_NAIVE-by_execution':'palevioletred', 
         'LR_NAIVE':                 'palevioletred', 
+        'LR':                       'palevioletred', 
+        
         'MPC-LR_PCo-by_execution':'teal',
         'LR_PCo':                 'teal',
+        'LRCo':                 'teal',
+        
         'MPC-TFT_optuna-by_execution':'orange', 
         'TFT_optuna':                 'orange', 
+        'TFT':                        'orange', 
+        
         'MPC-XGB-by_execution':'tomato',
         'XGB':                 'tomato',
+        'XGBoost':             'tomato',
+        
+        
+        'U':'steelblue',
+        'U-':'orangered',
+        'U+':'darkgreen',
+        'dc=0':'darkgreen',
+        'dc=18$/kWh':'orangered',
+
+        'execution steps=4':'mediumseagreen',
+        'execution steps=48':'cornflowerblue',
+        'execution steps=96':'mediumvioletred',
         
         'E_1':'black',
         'E_2':'black',
@@ -172,9 +198,9 @@ legend_dict={
         'MPC-DeepAR_optuna-by_execution':'DeepAR', 
         'RBC-GT-by_execution':'RBC',
         'MPC-GT-by_execution':'MPC-GT', 
-        'MPC-Simple-by_execution':'Heuristic',
+        'MPC-Simple-by_execution':'AMA',
         'MPC-LR_NAIVE-by_execution':'LR', 
-        'MPC-LR_PCo-by_execution':'LR-PCo',
+        'MPC-LR_PCo-by_execution':'LRCo',
         'MPC-TFT_optuna-by_execution':'TFT', 
         'MPC-XGB-by_execution':'XGBoost'
         
@@ -220,7 +246,7 @@ def get_merged_df(file_folder=None,log_fn=None,id_exe_unne=None, id_sol_nece=Non
     print(type(df_merged))
     return df_merged
 
-def plot_track_p_max(df_merged,figsize,line_keys=['actual_p_max','necessary','unnecessary'],linewidth=1,month='May',
+def plot_track_p_max(df_merged,figsize,line_keys=['actual_p_max','necessary','unnecessary'],linewidth=1,month='May',bbox_to_anchor=(1.04, -0.015, 1, 1),
                      plot_error_bar=False,error_bar_width=0.01, ylimit_main=[-150,250],ylimit_sub=[-150,250],plot_error_line=True,
                      inside_start_day=5,inside_days=1,legend_loc="lower right",track_real=False,shadow=False,all_positive=False,
                      xlabel_l=None,xlabel_r=None,ylabel=None,line_clr_dic=None, label_dic=None,
@@ -289,7 +315,9 @@ def plot_track_p_max(df_merged,figsize,line_keys=['actual_p_max','necessary','un
                             flag_gray=1
                         
                 ax2.set_ylim(ylimit_main[0]/5,ylimit_main[1]/5)
-                ax2.set_yticklabels(ax2.get_yticklabels(),rotation=0,fontsize=ticklabel_fs)
+                #ax2.set_yticklabels(ax2.get_yticklabels(),rotation=0,fontsize=ticklabel_fs)
+                ax2.set_yticklabels([])
+                
                 ax2.legend(fontsize=legend_fs,loc='lower right')
                 
                 if draw_legend==False:
@@ -324,7 +352,7 @@ def plot_track_p_max(df_merged,figsize,line_keys=['actual_p_max','necessary','un
         # set the subplot:
         if axins==None:
             axins = inset_axes(ax, width="60%", height="100%", loc='lower left',
-                            bbox_to_anchor=(1.04, -0.015, 1, 1), 
+                            bbox_to_anchor=bbox_to_anchor, 
                             bbox_transform=ax.transAxes)
         else:
             axins=axins
@@ -468,8 +496,8 @@ def get_df_for_plot(method,fn_list):
     return mape,y_dic,mean_dic
 
 def cluster_box_plot(figsize,
-                     mape,y_dic,mean_dic,ylimit=(-10,180),
-                     y_dic_self_define=None,self_define_position=True,
+                     mape,y_dic,mean_dic,ylimit=(-10,180),plot_noise=True,show_yaxis=True,
+                     y_dic_self_define=None,self_define_position=True,markersize_raw=None,
                      mean_dic_old=None,ax=None,vol=True,x_label='Default_label',
                      plot_line_new=True, plot_line_old=False, save_fn=None):
     if vol ==True:
@@ -494,7 +522,8 @@ def cluster_box_plot(figsize,
     positions2=np.array(range(1,len(mape)+1))
     positions3=np.array(range(1,len(mape)+1))+figsize[0]/32
     
-    color_dic={
+    # deprecated
+    '''color_dic={
         'U':'steelblue',
         'U-':'orangered',
         'U+':'darkgreen',
@@ -511,7 +540,7 @@ def cluster_box_plot(figsize,
         'execution steps=4':'mediumseagreen',
         'execution steps=48':'cornflowerblue',
         'execution steps=96':'slateblue',
-    }
+    }'''
     alpha_dic={
         'U':0.15,
         'U-':0.15,
@@ -520,10 +549,13 @@ def cluster_box_plot(figsize,
         'dc=18$/kWh':0.4,
         "XGBoost":0.6,
         "LR-PCo":0.5,
+        "LRCo":0.5,
         "TFT":0.5,
         "LR":0.6,
         #"TFT_NAIVE",
         "DeepAR":0.7,
+        "ESH":0.7,
+        "AMA":0.7,
         "Heuristic":0.7,
         #'RF_NAIVE',
         'execution steps=4':0.7,
@@ -538,11 +570,14 @@ def cluster_box_plot(figsize,
         'dc=18$/kWh':0,
         "XGBoost":1,
         "LR-PCo":1,
+        "LRCo":1,
         "TFT":1,
         "LR":1,
+        "Heuristic":1,
         #"TFT_NAIVE",
         "DeepAR":1,
-        "Heuristic":1,
+        "ESH":1,
+        "AMA":1,
         #'RF_NAIVE',
         'execution steps=4':0.7,
         'execution steps=48':0.7,
@@ -566,22 +601,22 @@ def cluster_box_plot(figsize,
         for key in y_dic.keys():
             used_keys.append(key)
             bplot=ax.boxplot(y_dic[key],positions=pos_dic[key],patch_artist=True,showmeans=True,widths=figsize[0]/40,        
-                    boxprops={"facecolor": color_dic[key],
+                    boxprops={"facecolor": color_dic_glb[key],
                             "edgecolor": "w",
                             "linewidth": 0,
                             'alpha':0.4},
-                    medianprops={"color": color_dic[key], "linewidth": 0},
+                    medianprops={"color": color_dic_glb[key], "linewidth": 0},
                     meanprops={'marker':'+',
-                            'markerfacecolor':color_dic[key],
-                            'markeredgecolor':color_dic[key],
+                            'markerfacecolor':color_dic_glb[key],
+                            'markeredgecolor':color_dic_glb[key],
                             'markersize':4.1*figsize[0]/8},
                     sym="",showfliers=True, showcaps=False,
                     whiskerprops={'color': 'w', 'linewidth': 1, 'linestyle': '--', 'alpha':0},
                     )
             if plot_line_new==True:
-                lplot=ax.plot(pos_dic[key],mean_dic[key],linestyle='-',color=color_dic[key],alpha=0.2,linewidth=0.5)
+                lplot=ax.plot(pos_dic[key],mean_dic[key],linestyle='-',color=color_dic_glb[key],alpha=0.2,linewidth=1)
             if plot_line_old==True:
-                lplot=ax.plot(pos_dic[key],mean_dic_old[key],linestyle='--',marker='+',color=color_dic[key],
+                lplot=ax.plot(pos_dic[key],mean_dic_old[key],linestyle='--',marker='+',color=color_dic_glb[key],
                             alpha=0.5,linewidth=0.8,markersize=0*figsize[0]/8)
             ax.set_xticks([])
             ax.set_xticklabels([])
@@ -609,11 +644,20 @@ def cluster_box_plot(figsize,
                 position=y_dic_self_define[key][0][i][0]
                 c_key=y_dic_self_define[key][0][i][2]
                 width=y_dic_self_define[key][0][i][1]
-                markersize=width*figsize[0]*50/len(y_dic_self_define.keys())
+                
+                if (plot_noise==False):
+                    if c_key in ['U','U+','U-']:
+                        continue
+                    position-=width*2
+                    width*=2
+                if markersize_raw==None:
+                    markersize=width*figsize[0]*50/len(y_dic_self_define.keys())
+                else:
+                    markersize=markersize_raw
                 marker='+'
-                if c_key in ['XGBoost','LR-PCo','TFT','LR','DeepAR','Heuristic']:
+                if c_key in ['XGBoost','LRCo','LR-PCo','TFT','LR','DeepAR','ESH','AMA']:
                     width=width/5
-                    markersize=markersize/2
+                    markersize=markersize/1.5
                     marker='o'
                 else:
                     width=y_dic_self_define[key][0][i][1]
@@ -621,14 +665,14 @@ def cluster_box_plot(figsize,
                 #print(values,position,c_key,width)
                 bplot=ax.boxplot([values],positions=[position],patch_artist=True,showmeans=True,
                                 widths=[width],        
-                        boxprops={"facecolor": color_dic[c_key],
-                                "edgecolor": color_dic[c_key],
+                        boxprops={"facecolor": color_dic_glb[c_key],
+                                "edgecolor": color_dic_glb[c_key],
                                 "linewidth": width_dic[c_key],
                                 'alpha':alpha_dic[c_key]},
-                        medianprops={"color": color_dic[c_key], "linewidth": 0},
+                        medianprops={"color": color_dic_glb[c_key], "linewidth": 0},
                         meanprops={'marker':marker,
-                                'markerfacecolor':color_dic[c_key],
-                                'markeredgecolor':color_dic[c_key],
+                                'markerfacecolor':color_dic_glb[c_key],
+                                'markeredgecolor':color_dic_glb[c_key],
                                 'markersize':markersize},
                         sym="",showfliers=True, showcaps=False,
                         whiskerprops={'color': 'w', 'linewidth': 1, 'linestyle': '--', 'alpha':0},
@@ -688,11 +732,15 @@ def cluster_box_plot(figsize,
 
     legend_elements=[]
     used_keys=list(set(used_keys))
-    for key in color_dic:
+    for key in color_dic_glb:
         if key in used_keys:
-            if key not in ['XGBoost','LR-PCo','TFT','LR','DeepAR','Heuristic']:
-                legend_elements.append(Patch(facecolor=color_dic[key], edgecolor=color_dic[key],
-                                     label=key,alpha=alpha_dic[key],linewidth=width_dic[key]))
+            if plot_noise==True:
+                if key not in ['XGBoost','LRCo','LR-PCo','TFT','LR','DeepAR','ESH','Heuristic','AMA']:
+                    legend_elements.append(Patch(facecolor=color_dic_glb[key], edgecolor=color_dic_glb[key],
+                                        label=key,alpha=alpha_dic[key],linewidth=width_dic[key]))
+            else:
+                legend_elements.append(Patch(facecolor=color_dic_glb[key], edgecolor=color_dic_glb[key],
+                                        label=key,alpha=alpha_dic[key],linewidth=width_dic[key]))
     #if plot_line_new==True:
     #legend_elements.append(Line2D([0], [0], marker='+', color='gray', label='Mean',linewidth=0,
     #        markerfacecolor='gray', markersize=8))
@@ -711,6 +759,9 @@ def cluster_box_plot(figsize,
     #ax.set_xlabel("MAPE (%)", loc='center',fontsize=label_fs)
     ax.set_xlabel(x_label,loc='center',fontsize=label_fs)
     
+    if show_yaxis==False:
+        ax.set_ylabel(None)
+        ax.set_yticklabels([])
     if save_fn is not None:
         plt.savefig(save_fn)
         
@@ -1381,3 +1432,111 @@ def get_df(fn,drop_base):
         relative_dic_exeK96_dc.append(values)
         mean.append(values.mean())
     return relative_dic_exeK96_dc,pred_K,mean
+
+
+
+
+def get_df_for_plot_new(method,fn_list,x_quantiles=None):
+    dfs=[]
+    necessaey_cols=["method","strategy","B_kWh","pred_model",
+                    "month_of_year","p_grid_max","price_dc",
+                    "disturbance_rule","disturbance_MAPE","p_grid_max_method",
+                    "OPEX","tou_cost","demand_charge","relative_OPEX"]
+    for fn in fn_list:
+        df=pd.DataFrame(cal_relative(fn),columns=necessaey_cols)
+        dfs.append(df)
+        
+    for i in range(len(dfs)):
+        df=dfs[i]
+        rule_list=df["disturbance_rule"].unique()
+        rule_list=rule_list[pd.notnull(rule_list)]
+        for rule in rule_list:
+            a=df[(df.disturbance_rule==rule)&(df.disturbance_MAPE==0.1)].copy()
+            for k in ["OPEX","tou_cost","demand_charge","relative_OPEX"]:
+                a[k]=[df[(df.strategy=="optimal")&(df.pred_model=="GT")][k].values[0]]*len(a)
+            a["disturbance_MAPE"]=[0]*len(a)
+            df=df._append(a).copy()
+        dfs[i]=df.copy()
+        
+    df_concated=pd.concat(dfs).drop_duplicates().reset_index(drop=True)
+    df_concated["disturbance_MAPE"] = df_concated["disturbance_MAPE"].apply(lambda x: round(x, 1))
+    df_by_method=df_concated.groupby(by='p_grid_max_method')
+
+    df_by_exe=df_by_method.get_group(method).groupby(by="disturbance_rule")
+    df_uniform=df_by_exe.get_group("uniform")
+    df_uniform_neg=df_by_exe.get_group("uniform_neg")
+    df_uniform_pos=df_by_exe.get_group("uniform_pos")
+
+    mape=sorted(df_uniform["disturbance_MAPE"].unique())
+    
+    y_uniform=list()
+    y_uniform_neg=list()
+    y_uniform_pos=list()
+    y_uniform_mean=list()
+    y_uniform_neg_mean=list()
+    y_uniform_pos_mean=list()
+    y_dic_all={}
+    for m in mape:
+        p=np.array(df_uniform_pos[df_uniform_pos.disturbance_MAPE==m]["relative_OPEX"].values)
+        u=np.array(df_uniform[df_uniform.disturbance_MAPE==m]["relative_OPEX"].values)
+        n=np.array(df_uniform_neg[df_uniform_neg.disturbance_MAPE==m]["relative_OPEX"].values)
+        
+        if x_quantiles!=None:
+            m=m*x_quantiles*2
+        else:
+            x_quantiles=0.5
+            
+        if m in y_dic_all.keys():
+            ...
+        else:
+            if m==0*x_quantiles*2:
+                y_dic_all.update({m:[list(),0.5*x_quantiles*2,1*x_quantiles*2,1.5*x_quantiles*2]})
+            elif m==0.1*x_quantiles*2:
+                y_dic_all.update({m:[list(),1.5*x_quantiles*2,2*x_quantiles*2,2.5*x_quantiles*2]})
+            elif m==0.5*x_quantiles*2:
+                y_dic_all.update({m:[list(),2.5*x_quantiles*2,3*x_quantiles*2,3.5*x_quantiles*2]})
+            else:
+                y_dic_all.update({m:[list(),m+2.5*x_quantiles*2,m+3*x_quantiles*2,m+3.5*x_quantiles*2]})
+        y_dic_all[m][0].append([m,0.1,'U+',p, np.nanmean(p)])
+        y_dic_all[m][0].append([m,0.1,'U',u, np.nanmean(u)])
+        y_dic_all[m][0].append([m,0.1,'U-',n, np.nanmean(n)])
+        
+            
+        y_uniform.append(u)
+        y_uniform_pos.append(p)
+        y_uniform_neg.append(n)
+        y_uniform_mean.append(np.nanmean(u))
+        y_uniform_pos_mean.append(np.nanmean(p))
+        y_uniform_neg_mean.append(np.nanmean(n))
+    y_dic={
+        'U':y_uniform,
+        'U-':y_uniform_neg,
+        'U+':y_uniform_pos
+    }
+    mean_dic={
+        'U':y_uniform_mean,
+        'U-':y_uniform_neg_mean,
+        'U+':y_uniform_pos_mean
+    }
+    return mape,y_dic,mean_dic,y_dic,y_dic_all
+
+def recal_position(dic,inter_group_r=0.9,inter_bar_r=0.7,base=1):
+    key_list=np.array(list(dic.keys()))
+    for k in range(len(key_list)):
+
+        key=key_list[k]
+
+        N=len(dic[key][0])
+        start=dic[key][1]
+
+        inner_gap=(base*inter_group_r)/(N+1)
+        outter_gap=inner_gap+base*(1-inter_group_r)/2
+        width=inner_gap*inter_bar_r
+        
+        for i in range(N):
+            if i==0:
+                dic[key][0][i][0]=start+outter_gap
+            else:
+                dic[key][0][i][0]=start+outter_gap+inner_gap*i
+            dic[key][0][i][1]=width
+    return dic

@@ -1,0 +1,76 @@
+In this section, we articulate an optimal energy management model under general microgrid settings.
+
+\subsection{Nomenclature}
+% \lunlong{Maybe the explanation of OPEX, TOU should be placed here?}
+In this paper, we denote the set of real numbers by $\R$ and the set of integers by $\Z$. We use functions $\ind{\cdot}$, $[\cdot]^{+}$, $[\cdot]^{-}$, $\lfloor \cdot \rfloor$ in their conventional meanings, i.e., $\ind{x}=1$ if $x$ is true otherwise $\ind{x}=0$, $[x]^{+} \coloneqq \max\{0,x\}$, $[x]^{-} \coloneqq \min\{0,x\}$.\footnote{
+For consistency, we adopt the convention that using lowercase letters (e.g., $x$) for (decision) variables, uppercase letters (e.g., $X$) and Greek letters (e.g., $\alpha$) for parameters, and calligraphic uppercase letters (e.g., $\mathcal{X}$) for sets.}
+
+\subsection{System Configuration}
+Without loss of generality, we consider an external-grid-connected microgrid with distributed solar panel (PV) generation, and battery energy storage. The loads of the microgrid includes building energy consumption, as well as EV charging demands. Specifically:
+
+\begin{itemize}
+    \item At time $t$, building load $\pbld_t$ and PV generation $\ppv_t$ are assumed to be uncontrollable.
+    \item The microgrid can import electricity power from, or export to the external grid, which is $\pgrid_t$ at time $t$ (negative for export), at time-of-use (TOU) tariff $\tou^+_t$ (purchase) or $\tou^-_t$ (sell).
+    \item A battery with capacity $B$ and maximum discharging (charging) power $\pbattU$ ($\pbattL$). At time $t$, its discharging power is $\pbatt_t$, for which negative value indicates charging.
+    \item EV charging demands are considered to be dispatchable. For EV $i$, which is plugged-in during $\ta_i$ to $\td_i$ with initial charge $\einit_i$, it should be charged to $\etarg_i$ by its departure. At time $t$, the charging power of EV $i$ is $\pev_{i,t}$, for which negative value indicates discharging. %\scott{At this point, the controllable EV charging seems like an unnecessary complication given the key research question and contribution.}
+    \item A \emph{demand charge} term is included as part of the utility bill, which has a constant marginal rate $\dc$ (per kW) applied to the maximum consumed power $\pDC$ within the billing cycle.% And the latest maximum consumed power at time $t$ is $\pDCt$.
+\end{itemize}
+
+\subsection{Optimal Energy Management}
+\begin{subequations}
+
+The goal of the optimization is to minimize the electricity bills over horizon $\tset = \{0,1,...,T\}$, i.e.,:
+\begin{equation}\label{eq:opt_obj}
+    \sum_{t=0}^{T-1} \left\{ 
+           \tou_t^+ \relu{\pgrid_t} - \tou_t^- \reluN{\pgrid_t} \right\} \dt
+           + \dc \, \pDC
+\end{equation}
+which is the consumption-based cost plus the demand charge. $\pDC = \max_t~ \{\pgrid_t\}$, which is the maximum grid import power within a billing cycle.\footnote{For simplicity, we consider $\tset$ contains one billing cycle, which is typically one month.} We can reformulate the maximum equality as:
+\begin{equation}\label{eq:constr_dc}
+    \pDC \ge \pgrid_t, ~~~~ \forall ~t
+\end{equation}
+
+
+Supply-demand balance should be observed at every time step:
+\begin{equation}
+    \pgrid_t + \pbatt_t + \ppv_t = \pbld_t + \sum_{i=1}^I \pev_{i,t},
+                ~~~~ \forall ~ t
+\end{equation}
+
+Power imported from or exported to external grid is limited:
+\begin{equation}
+   \pgridL \le \pgrid_t \le \pgridU, ~~~~\forall ~t
+\end{equation}
+If $\pgridL = \pgridU = 0$, the microgrid is isolated. In general, such limits are determined by the transformer capacity, per certain microgrid codes.
+
+For the battery, the following constraints (dynamics) need to be satisfied\footnote{We consider an ideal battery model here for simplicity. We will plug in more complicated models, e.g., considering battery degradation, in our future work for sensitivity analysis.}:
+\begin{align}
+   & \ebatt_{t+1} = \ebatt_t  + \left(\effbatt^- \reluN{\pbatt_t} - \frac{1}{\effbatt^+} \relu{\pbatt_t}\right) \dt,
+                ~ \forall ~ t \\
+   & \pbattL \le \pbatt_t \le \pbattU,~~~~ \forall ~ t\\
+   &  \ebattL \le \ebatt_t \le \ebattU,~~~~ \forall ~ t\\
+   & b_0 = B_0 , ~~ b_T \ge B_T
+\end{align}
+where $\effbatt^+$ ($\effbatt^-$) is the discharging (charging) efficiency.
+
+For each EV $i$, its charging schedule should follow the following constraints:
+\begin{align}
+    & \eev_{i,t+1} = \eev_{i,t} + \left(\effev^+ \relu{\pev_{i,t}} - \frac{1}{\effev^-} \reluN{\pev_{i,t}}\right) \dt,
+                ~~\forall ~ t\\
+   & \pevL_i\, \evind_{i,t} \le \pev_{i,t} \le \pevU_i\, \evind_{i,t}, 
+        ~~~~\forall ~ t\\
+   &  \eevL_i \le \eev_{i,t} \le \eevU_i,
+        ~~~~\forall ~ t\\
+   & e_{i,\ta_i} = \einit_i, ~~ e_{i,\td_i} \ge \etarg_i \label{eq:constr_e_init_targ}
+\end{align}
+where $\evind_{i,t} = \ind{\ta_i \le t < \td_i}$ indicates whether EV $i$ is in the station at time $t$, and $\xi^+$ ($\xi^-$) is the charging (discharging) efficiency. The formulation is compatible with different charging modes. For example, bidirectional charging, a.k.a., vehicle-to-grid (V2G) can be allowed by setting $\pevL_i = - \pevU_i$, or prohibited with $\pevL_i=0$. If the charging process is uncontrollable, we can pre-calculate $\pevL_{i,t} = \pevU_{i,t}$ thus $\pev_{i,t}$ is pre-determined.
+\end{subequations}
+
+To conclude, a general formulation of optimal energy management is:
+\begin{subequations}\label{eq:opt1}
+    \begin{align}
+        \min~~ & \text{obj. \eqref{eq:opt_obj}}\\
+        \text{s.t.~~~~} & \text{constr. \eqref{eq:constr_dc}-\eqref{eq:constr_e_init_targ}}
+    \end{align}
+\end{subequations}
+With some trivial reformulations, the program \eqref{eq:opt1} is a linear programming (LP).\footnote{Some assumptions, e.g., $\tou^+_t \ge \tou^-_t$ are required, which are also trivial.}

@@ -1,0 +1,85 @@
+\newcommand{\tToK}{t_{[K]}}
+\newcommand{\pgridSch}{\widetilde{p}^{\text{G}}}
+\newcommand{\pbattSch}{\widetilde{p}^{\text{B}}}
+\newcommand{\pevSch}{\widetilde{p}^{\text{EV}}}
+\newcommand{\prevmax}{P^{\max}}
+\newcommand{\prevmaxNecc}{\widetilde{P}^{\max}}
+
+
+In this section, we first introduce the model predictive control approach for microgrid energy management, and then define and discuss the value of load predictions in terms of control performance. In both parts, we emphasize the role of the demand charge constraint.
+
+\subsection{Model Predictive Control}
+
+Compactly, we write the constrained finite-time optimal control (CFTOC) problem as:
+\begin{equation}
+    \widetilde{u}_{t_{[K]}} = \arg\min J(u_{t_{[K]}} \mid x_t, w_{t_{[K]}}, \theta_{t_{[K]}})
+\end{equation}
+where $z_{t_{[K]}} = \{z_t, z_{t+1}, ..., z_{t+K}\}$, and $x, u, w, \theta$, by convention of control literature, are states, actions, disturbances, and parameters respectively. Disturbances $w$ are unknown at the moment of solving CFTOC, so we substitute with the forecasts $\hat{w}$ in the problem formulation. Under MPC, CFTOC is solved, but we only implement the first $K^\text{exe} \le K$ steps of its solutions before re-optimize. The procedure is shown in Alg.\,\ref{alg:mpc}.  
+\begin{algorithm}
+\caption{model predictive control}\label{alg:mpc}
+\begin{algorithmic}
+\STATE $t \gets T_0$, $x_t \gets X_0$
+\WHILE{$t \le T_\text{end}$}
+\STATE \textbf{forecast}~$\widehat{w}_{t_{[K]}}$
+\STATE \textbf{solve} $\widetilde{u}_{t_{[K]}} = \arg\min J(u_{t_{[K]}} \mid x_t, \widehat{w}_{t_{[K]}}, \theta_{t_{[K]}})$
+\FOR{$k=0,...,K^\text{exe}-1$}
+    \STATE \textbf{execute}~$\widetilde{u}_{t+k}$, \textbf{update}~$x_{t+k}$
+\ENDFOR
+\STATE $t \gets t + K^\text{exe}$
+\ENDWHILE
+\end{algorithmic}
+\end{algorithm}
+
+In our specific context, states $x$ are battery charge $\ebatt_t$, EV charge $\{\eev_{i,t}\}_{\mathcal{I}_t}$, and the maximum imported power in the billing cycle up to $t$, denoted as $\prevmax_t$. Actions $u$ include schedules for battery charging $\pbatt_{t_{[K]}}$, EV charging $\{\pev_{i, \tToK}\}_{\mathcal{I}_t \cup \widehat{\mathcal{I}}_t}$, and grid power exchange $\pgrid_{\tToK}$. Disturbances $w$ refer to uncontrollable PV generations and building loads, whose estimates are denoted as $\pvest_{\tToK \mid t}$ and $\bldest_{\tToK \mid t}$, as well as future EV sessions\footnote{$\Iset_t = \{i: \ta_i \le t < \td_i\}$ is EVs in the station at $t$, and $\widehat{\Iset}_t=\{i: t < \widehat{\tau}^\text{a}_i \le t+K\}$ is EVs forecast to come in the future $K$ steps. Future EV sessions include forecasts on arrival time, departure time and energy requests.}.
+
+In real execution, the battery and EV charging schedules will follow what are solved from the CFTOC.\footnote{We assume that such operations are always feasible and can be precisely implemented, since we focus on the uncertainty of building load and PV.} When building load and PV generation are realized, the microgrid imports/exports the amount of energy from the grid that synchronously balances the supply and demand (instead of executing the one solved in CFTOC with predicted load and generation). Formally:
+\begin{subequations}
+\begin{align}
+    \pgridSch_t & = \bldest_t - \pvest_t - \pbattSch_t + \sum\nolimits_i \pevSch_{i,t} \label{eq:pgrid_sch}\\
+    \pgrid_t & = \pbld_t - \ppv_t - \pbattSch_t + \sum\nolimits_i \pevSch_{i,t} \label{eq:pgrid_real}\\
+    & = \bldest_t - \pvest_t + \epsilon_t - \pbattSch_t + \sum\nolimits_i \pevSch_{i,t}\notag
+     = \pgridSch_t + \epsilon_t
+\end{align}
+\end{subequations}
+where $\epsilon_t$ is the prediction error on net load at time $t$.
+
+
+\subsection{Value of Information}
+
+\emph{Value of information} (VoI) is a useful concept for evaluating the impact of forecast accuracy on control performance. Let $u^*(\hat{w})$ be the control sequence implemented under MPC when the estimates for disturbances $w$ are $\hat{w}$, and $J(u^*(\hat{w}); w)$ be the realized outcome of this control sequence. We define the value of forecast $\hat{w}$ as the difference of it control performance and that when ground truth information $w$ is available, i.e.,
+\begin{equation}
+    V(\hat{w}; w) =  J(u^*(w); w) - J(u^*(\hat{w}); w)
+\end{equation}
+From the definition, $V(\hat{w}; w) \le 0$, and the higher value $V$ is, the more valuable $\hat{w}$ is for the control task. In order to make meaningful comparisons across different scenarios, we define a \emph{normalized value of information} (VoI*) as:
+\begin{equation}
+    \text{VoI*} = \frac{J(u^*(\hat{w}); w) - J(u^{\text{RBC}}; w)}{J(u^*(w); w) - J(u^{\text{RBC}}; w)}
+\end{equation}
+where $u^{\text{RBC}}$ is the control sequence made under some rule-based control strategy.\footnote{The RBC strategy may or may not rely on forecast $\hat{w}$. For our specific choice, maximize self-consumption (MSC) strategy, it does not use forecast information.} The forecast $\hat{w}$ achieves $100\%$ VoI* if it has the same control performance as MPC with ground truth forecasts (MPC-GT) and it cannot do better. Forcast $\hat{w}$ is useless if MPC with it cannot outperform a RBC strategy that does not require any forecast, in which case its VoI* is $0\%$. VoI* may even be negative, which means $\hat{w}$ provides misleading information which leads MPC to make far suboptimal actions so that it is outperformed by RBC.
+
+\subsection{Peak Demand Tracking}\label{sec: method_peak_track}
+Since the CFTOC horizon $K$ is usually much shorter than a billing cycle, Constr.\,\eqref{eq:constr_dc} should be modified as:
+\begin{equation}\label{eq:constr_prevmax}
+    \pDC \ge \pgrid_k, ~~\forall k \quad\quad\text{and}\quad
+    \pDC \ge \prevmax_t
+\end{equation}
+in CFTOC. Tracking $\prevmax_t$ is essential as it marks a boundary line where increasing imported power has different marginal costs at its two sides. Mathematically, we can write the sensitivity as:
+\begin{equation}
+    \frac{\partial J}{\partial \pgrid_t}\Bigg\vert_{\pgrid_t = u} =
+    \left\{\begin{aligned}
+    & \tou^+_t \dt, ~~ 0 \le u < \prevmax_t\\
+    & \tou^+_t \dt + \dc, ~~ u > \prevmax_t
+    \end{aligned}
+    \right.
+\end{equation}
+Taking into account the difference in marginal costs, when necessary (typically when TOU is low), it is not a difficult decision to increase $\pgrid_t$ up to $\prevmax_t$, but it will be much more cautious when exceeding $\prevmax_t$.
+
+Hence, if we track the real $\prevmax_t$ and implement the demand charge constraint \eqref{eq:constr_prevmax} with it, we are likely to have scheduled $\pgridSch$ very close to it (but does not exceed it). Then, a tiny load uncertainty upwards will drive $\pgrid$ to exceed $\prevmax_t$. This can be problematic: First, at that particular step, the energy marginal cost is higher. More importantly, since it pushes $\prevmax_t$ higher, all the following CFTOCs are prone to scheduling $\pgridSch$ close to the new boundary, which in turn continuously pushes $\prevmax_t$ even higher.
+
+To tackle this issue, we propose a novel peak-tracking method as ``track-necessary''. Instead of using the real peak demand in \eqref{eq:constr_prevmax}, we use a surrogate that excludes the unexpected peak inflation due to load underestimates. We write the dynamics of conventional ``track-real'' approach and our proposed ``track-necessary''\footnote{It is just a way of naming: without the knowledge of actual load, in no sense can any approach provide the actual ``necessary'' peak.} approach as follows:
+\begin{subequations}
+\begin{align}
+    & [\text{Real}] && \prevmax_t = \max\{\prevmax_{t-1}, \pgrid_t\}\label{eq: pmax_actual}\\
+    & [\text{Necessary}] && \prevmaxNecc_t = \max\{\prevmaxNecc_{t-1}, \min\{\pgridSch_t, \pgrid_t\}\}\label{eq: pmax_necessary}
+\end{align}
+\end{subequations}
+where $\prevmax_{-1} = \prevmaxNecc_{-1} = 0$ for initialization. One may note that $\min\{\pgridSch_t, \pgrid_t\} = \pgridSch_t + [\epsilon_t]^-$ according to \eqref{eq:pgrid_real}, so it filters the underestimation effects.

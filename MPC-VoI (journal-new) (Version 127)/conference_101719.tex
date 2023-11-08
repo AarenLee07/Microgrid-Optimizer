@@ -1,0 +1,136 @@
+% \documentclass[conference]{IEEEtran}
+\documentclass{article}%[draft]
+\usepackage{PRIMEarxiv}
+% \IEEEoverridecommandlockouts
+% The preceding line is only needed to identify funding in the first footnote. If that is unneeded, please comment it out.
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage[noend]{algorithmic}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
+    T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+
+\usepackage{url}
+
+\usepackage{booktabs}       % professional-quality tables
+\usepackage{amsfonts}       % blackboard math symbols
+\usepackage{nicefrac}       % compact symbols for 1/2, etc.
+\usepackage{microtype}      % microtypography
+\usepackage{lipsum}
+\usepackage{fancyhdr}       % header
+\usepackage{physics}
+\usepackage{mathtools}
+\usepackage{xcolor}
+\usepackage{soul}
+\usepackage{multirow}
+\usepackage{textcomp}
+
+
+
+% \usepackage{algorithm}
+% \usepackage{algpseudocode}
+\usepackage[ruled, linesnumbered, vlined]{algorithm2e}
+\allowdisplaybreaks
+
+\usepackage{hyperref}       % hyperlinks
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,      
+    urlcolor=cyan,
+}
+
+\usepackage{soul}
+\DeclareRobustCommand{\scott}[1]{{\sethlcolor{yellow}\hl{[Scott: #1]}}}
+\DeclareRobustCommand{\yi}[1]{{\sethlcolor{pink}\hl{[Yi: #1]}}}
+\DeclareRobustCommand{\walter}[1]{{\sethlcolor{green}\hl{[Walter: #1]}}}
+\DeclareRobustCommand{\lunlong}[1]{{\sethlcolor{cyan}\hl{[Lunlong: #1]}}}
+
+
+%Header
+\pagestyle{fancy}
+\thispagestyle{empty}
+\rhead{ \textit{ }} 
+
+% Update your Headers here
+\fancyhead[LO]{L. Li \textit{et al, 2023}. \textit{MPC-VoI}.}
+% \fancyhead[RE]{Firstauthor and Secondauthor} % Firstauthor et al. if more than 2 - must use \documentclass[twoside]{article}
+
+
+
+\begin{document}
+
+\title{\vspace{18 pt}{Quantifying the Impact of Load Forecast on Economic Building Energy Management}
+% {\footnotesize \textsuperscript{*}Note: Sub-titles are not captured in Xplore and
+% should not be used}
+\thanks{{Corresponding author: Z. Wang (\texttt{cezhewang@ust.hk}). L. Li and Y. Ju contributed equally to this work. This study was supported by the National Science Fund for Excellent Young Scholars (Grant number 52322813) and Hetao Shenzhen-Hong Kong Science and Technology Innovation Cooperation Zone (HZQB-KCZYB-2020083).}}
+}
+
+% \makeatletter
+% \newcommand{\linebreakand}{%
+%   \end{@IEEEauthorhalign}
+%   \hfill\mbox{}\par
+%   \mbox{}\hfill\begin{@IEEEauthorhalign}
+% }
+% \makeatother
+
+
+
+
+\author{
+Lunlong Li\\
+HKUST\\
+% \textit{HKUST Shenzhen-Hong Kong- } \\
+% \textit{Collaborative Innovation Research Institute}\\
+% Futian, Shenzhen, China \\
+\texttt{llidx@connect.ust.hk}\\
+\And
+Yi Ju\\
+UC Berkeley\\
+% \textit{Department of Civil and Environmental Engineering} \\
+% \textit{University of California, Berkeley}\\
+% Berkeley, CA, USA \\
+\texttt{juy16thu@berkeley.edu}\\
+\And
+Zhe Wang\\
+HKUST\\
+% \textit{Department of Civil and Environmental Engineering} \\
+% \textit{Hong Kong University of Science and Technology}\\
+% Hong Kong SAR, China \\
+\texttt{cezhewang@ust.hk}\\
+}
+
+% \author{\IEEEauthorblockN{Lunlong Li}
+% \IEEEauthorblockA{\textit{HKUST Shenzhen-Hong Kong- } \\
+% \textit{Collaborative Innovation Research Institute}\\
+% Futian, Shenzhen, China \\
+% llidx@connect.ust.hk}
+% \and
+% \IEEEauthorblockN{Yi Ju}
+% \IEEEauthorblockA{\textit{Department of Civil and Environmental Engineering} \\
+% \textit{University of California, Berkeley}\\
+% Berkeley, CA, USA \\
+% juy16thu@berkeley.edu}
+% \linebreakand
+% \IEEEauthorblockN{Scott Moura}
+% \IEEEauthorblockA{\textit{Department of Civil and Environmental Engineering} \\
+% \textit{University of California, Berkeley}\\
+% Berkeley, CA, USA \\
+% smoura@berkeley.edu}
+% \and
+% \IEEEauthorblockN{Zhe Wang}
+% \IEEEauthorblockA{\textit{Department of Civil and Environmental Engineering} \\
+% \textit{Hong Kong University of Science and Technology}\\
+% Hong Kong SAR, China \\
+% cezhewang@ust.hk}
+% }
+
+\maketitle
+
+\input{main}
+
+
+
+\end{document}

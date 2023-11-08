@@ -1,0 +1,68 @@
+\begin{abstract}
+
+Smart building energy management requires better load forecast models and better control strategies, within each cluster there are considerable research advances over the past few years. Improving the economic performances in real-world practice asks for seamlessly integration of the two parts, however, comprehensive uncertainty quantification is very limited.  
+In this research, we focus on understanding how forecast errors on building electricity load impact control performances under model predictive control (MPC) strategies, i.e., quantifying the value of information (VoI) for building energy management. We implement a collection of both cutting-edge and common-practice learning algorithms for building load forecast, and formulate a MPC pipeline that uses the forecast information for building energy control. With extensive simulations based on real scenarios, our findings demonstrate that: first, MPC strategies have heterogeneous sensitivities on forecast errors under different energy pricing schemes. Specifically, they are robust when the electricity bill does not include demand charges, but become extremely sensitive to even tiny errors when demand charge is introduced. Second, we uncover that forecasting errors have asymmetric impact on control performances that underestimations of load consequence a more detrimental effect on MPC performance compared to overestimations. 
+Our study implies that researchers should consider the learning and optimization tasks as a whole: on the one hand, we should define better error metrics which characterizes the specific downstream control challenges when fitting load forecast models. On the other hand, when designing control strategies, robustness under forecast errors should be carefully considered.
+
+
+% Microgrid optimization is crucial for economic efficiency, sustainability, and grid stability, with Model Predictive Control (MPC) offering a promising approach. Microgrid utility bills typically comprise both electricity usage charges and demand charges, with the latter being linked to peak power consumption during billing cycles. As a predictive control strategy, to implement MPC requires accurate load forecasting during the control horizon. In this research, we employ representative machine learning algorithms and heuristic models for load forecasting, with a specific focus on understanding how forecast uncertainties would impact control performance, particularly in the presence of demand charges. Our findings demonstrate that MPC, when operating without including demand charges, exhibits robustness against forecast uncertainties, yielding nearly optimal performance even when forecast errors reach 10\% Mean Absolute Percentage Error (MAPE). However, when demand charges are introduced, even minor prediction errors as low as 1\% MAPE lead to significantly worse control outcomes. We further uncover that this disparity arises from the asymmetric impact of forecasting errors, where underestimations of load have a more detrimental effect on MPC performance compared to overestimations. Moreover, we identify the limitations associated with employing singular aggregate metrics such as MAPE as indicators for MPC forecasts. We emphasize the importance of considering residual patterns and temporal correlations among consecutive steps to obtain a comprehensive evaluation of forecasting accuracy. Consequently, this study advocates for a thorough examination of forecasting features to establish a clear objective for upstream forecasting tasks, aiming at enhancing the performance and effectiveness of MPC in microgrid energy management.
+
+\end{abstract}
+
+\keywords{
+ Prediction uncertainty \and Model predictive control \and Building load forecast \and Smart grid operation
+}
+
+\input{content/0-newconmmands}
+
+% \color{blue}
+% \section*{Notes for co-authors}
+% \begin{enumerate}
+%     \item You can find the structure of this manuscript in \texttt{main.tex}. Each section is written in a separate file under the folder \texttt{content\textbackslash}. I create many shortcuts for variable names, which you can find in \texttt{0-newcommands.tex}.
+%     \item I highlight what is missing / I am quite unsure in \textcolor{red}{red}.
+%     \item For quicker rendering, I use figures of low resolution now, and I will replace them with high quality version before submission.
+%     \item Please check that \emph{track changes} is on for you (click the 'Review' button on the upper line).
+%     \item Do we need to emphasize more on the relevance of our paper with the session theme  - I am afraid it is not quite strong currently.
+% \end{enumerate}
+% \color{black}
+
+\section{Introduction} \label{sec:intro}
+%\lunlong{Introduction not drafted yet}
+\input{content/1-intro}
+
+% \section{Method} \label{sec:model}
+% \input{content/2-model}
+
+\section{Method} \label{sec:method}
+\input{content/2-method}
+
+\section{Results} \label{sec:results}
+\input{content/4-results}
+
+\section{Discussion} \label{sec:discussion}
+%\lunlong{Discussion not drafted yet}
+\input{content/5-discussion}
+
+\section{Conclusion and future work} \label{sec:conclusion}
+%\lunlong{Conclusion not drafted yet}
+\input{content/6-conclusion}
+
+\iffalse 
+In this paper, we investigate the value of building load prediction on microgrid energy management control performance, with an emphasis on the role of demand charge term. The key challenge is to eliminate the cumulative impact of load forecast errors on the control performance of an entire billing cycle. Our proposed ``track-necessary'' approach is easy to implement in practice and demonstrate robustness under forecast errors. Meanwhile, our finding on the asymmetric value of information encourages researchers to consider the learning and optimization problems as a whole in future works. 
+\fi
+
+\section{Acknowledgement} \label{sec:acknowledgement}
+This study was supported by the National Science Fund for Excellent Young Scholars (Grant number 52322813). This work was supported in part by the Project of Hetao Shenzhen-Hong Kong Science and Technology Innovation Cooperation Zone (HZQB-KCZYB-2020083).
+
+\section{Declaration of generative AI and AI-assisted technologies in the writing process}
+
+During the preparation of this work the authors used \emph{DeepL} in order to polish the language. After using this tool, the authors reviewed and edited the content as needed and take full responsibility for the content of the publication.
+%\section{Appendix} \label{sec:appendix}
+%\lunlong{Conclusion not drafted yet}
+\input{content/88-appendix}
+
+% \appendices
+% \input{content/88-appendix}
+
+ \bibliographystyle{IEEEtran}
+ \bibliography{content/references}
