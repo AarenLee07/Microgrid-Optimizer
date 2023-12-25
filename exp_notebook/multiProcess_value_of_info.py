@@ -4,13 +4,12 @@ import exp
 from multiprocessing import Process, freeze_support
 from threading import Thread
 from time import sleep
+
 src_path = sys.path[0].replace("exp_notebook", "src")
-#replace notebook as scripts
 data_path = sys.path[0].replace("exp_notebook", "data")
 if src_path not in sys.path:
     sys.path.append(src_path)
 out_path = sys.path[0].replace("exp_notebook", "output")
-#log_folder=r'L:\Coding_project\Energy_grid_new_exp_local'
 log_folder=r'D:\Codes\Energy_grid_new_exp_local'
 
 exp_suffix = "thesis_value_of_information"

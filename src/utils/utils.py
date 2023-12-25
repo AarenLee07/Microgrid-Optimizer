@@ -31,10 +31,10 @@ def get_data_path():
         os.path.exists(data_path)
     except:
         curr_path = sys.path[0]
-        idx = curr_path.find("\\Energy_grid_new")
+        idx = curr_path.find("\\Microgrid-Optimizer")
         if idx == -1:
             raise Exception("cannot locate current repository")
-        data_path = os.path.join(curr_path[:idx+len("\\Energy_grid_new")], "data")
+        data_path = os.path.join(curr_path[:idx+len("\\Microgrid-Optimizer")], "data")
     finally:
         return data_path
     

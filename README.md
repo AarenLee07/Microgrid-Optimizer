@@ -1,4 +1,5 @@
 # Microgrid-Optimizer
 
+A demo notebook is provided in /exp_notebook as demo.ipynb, you may refer to this file for instructions on using this repository;
 
-Renewed version of Energy_gird based on Battery_sizing Repo from Ju Yi
+Introduction to this repository is under preparation before related paper being published.
