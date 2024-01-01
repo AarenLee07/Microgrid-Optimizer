@@ -1,2 +1,0 @@
-cd /root/minimun_implementation_base/exp_notebook
-conda activate gurobi

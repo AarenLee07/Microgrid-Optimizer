@@ -1,9 +1,0 @@
-
-When checking the feasibility of solution:
-    
-    sol["bat_e"][s][K]:  0.0
-    params["bat_soc_K"][s]  6.394884621840902e-14
-
-    viloating assert sol["bat_e"][s][K] >= params["bat_soc_K"][s] * bat_capacity
-
-    then modify the checking constraint as
