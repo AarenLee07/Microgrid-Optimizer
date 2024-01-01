@@ -15,7 +15,7 @@ Specifically, the simulations based on this repository focus on the inclusion of
 
 The overall workflow:
 
-![图片](figures\fig1-workflow.png "Overall workflow")
+![image](https://github.com/AarenLee07/Microgrid-Optimizer/blob/main/figures/fig1-workflow.png)
 
 ## 
 
@@ -29,6 +29,9 @@ This repository includes:
 
 
 A demo notebook is provided as `exp_notebook\demo.ipynb`, you may refer to this file for instructions on using this repository.
+
+***
+***Please note that a `gurobi` license is needed for using this repository.*** Academic free trial license is availabe on [obtain_gurobi_license](https://support.gurobi.com/hc/en-us/articles/12684663118993).
 
 ***
 
