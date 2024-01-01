@@ -30,6 +30,9 @@ This repository includes:
 
 A demo notebook is provided as `exp_notebook\demo.ipynb`, you may refer to this file for instructions on using this repository.
 
+***
 
 _More detailed introductions are on the way._
+
+_We have to admit that the current code was developed for our own experiment purposes, which may not satisfy the quality of an open simulator to support further development. We are aware of this need and will actively enhance our code to make it benefit more research._
 
