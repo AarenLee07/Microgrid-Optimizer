@@ -1,0 +1,166 @@
+add_relative_index: false
+categorical_embedding_sizes: {}
+dropout: 0.2
+feed_forward: GatedResidualNetwork
+full_attention: false
+hidden_continuous_size: 8
+hidden_size: 128
+input_chunk_length: 672
+likelihood: !!python/object:darts.utils.likelihood_models.QuantileRegression
+  _median_idx: 8
+  first: true
+  ignore_attrs_equality:
+  - first
+  - quantiles_tensor
+  prior_strength: 1.0
+  quantiles:
+  - 0.01
+  - 0.05
+  - 0.1
+  - 0.15
+  - 0.2
+  - 0.25
+  - 0.3
+  - 0.4
+  - 0.5
+  - 0.6
+  - 0.7
+  - 0.75
+  - 0.8
+  - 0.85
+  - 0.9
+  - 0.95
+  - 0.99
+  quantiles_tensor: null
+lr_scheduler_cls: null
+lr_scheduler_kwargs: null
+lstm_layers: 6
+norm_type: LayerNorm
+num_attention_heads: 6
+num_static_components: 0
+optimizer_cls: !!python/name:torch.optim.adam.Adam ''
+optimizer_kwargs:
+  lr: 0.0001
+output_chunk_length: 96
+output_dim: !!python/tuple
+- 1
+- 17
+train_sample_shape:
+- !!python/tuple
+  - 672
+  - 1
+- null
+- !!python/tuple
+  - 672
+  - 17
+- !!python/tuple
+  - 96
+  - 17
+- null
+- !!python/tuple
+  - 96
+  - 1
+use_reversible_instance_norm: false
+variables_meta:
+  input:
+    future_covariate:
+    - future_covariate_0
+    - future_covariate_1
+    - future_covariate_2
+    - future_covariate_3
+    - future_covariate_4
+    - future_covariate_5
+    - future_covariate_6
+    - future_covariate_7
+    - future_covariate_8
+    - future_covariate_9
+    - future_covariate_10
+    - future_covariate_11
+    - future_covariate_12
+    - future_covariate_13
+    - future_covariate_14
+    - future_covariate_15
+    - future_covariate_16
+    future_target:
+    - target_0
+    historic_future_covariate:
+    - future_covariate_0
+    - future_covariate_1
+    - future_covariate_2
+    - future_covariate_3
+    - future_covariate_4
+    - future_covariate_5
+    - future_covariate_6
+    - future_covariate_7
+    - future_covariate_8
+    - future_covariate_9
+    - future_covariate_10
+    - future_covariate_11
+    - future_covariate_12
+    - future_covariate_13
+    - future_covariate_14
+    - future_covariate_15
+    - future_covariate_16
+    past_target:
+    - target_0
+  model_config:
+    categorical_input: []
+    reals_input:
+    - target_0
+    - future_covariate_0
+    - future_covariate_1
+    - future_covariate_2
+    - future_covariate_3
+    - future_covariate_4
+    - future_covariate_5
+    - future_covariate_6
+    - future_covariate_7
+    - future_covariate_8
+    - future_covariate_9
+    - future_covariate_10
+    - future_covariate_11
+    - future_covariate_12
+    - future_covariate_13
+    - future_covariate_14
+    - future_covariate_15
+    - future_covariate_16
+    static_input: []
+    static_input_categorical: []
+    static_input_numeric: []
+    time_varying_decoder_input:
+    - future_covariate_0
+    - future_covariate_1
+    - future_covariate_2
+    - future_covariate_3
+    - future_covariate_4
+    - future_covariate_5
+    - future_covariate_6
+    - future_covariate_7
+    - future_covariate_8
+    - future_covariate_9
+    - future_covariate_10
+    - future_covariate_11
+    - future_covariate_12
+    - future_covariate_13
+    - future_covariate_14
+    - future_covariate_15
+    - future_covariate_16
+    time_varying_encoder_input:
+    - target_0
+    - future_covariate_0
+    - future_covariate_1
+    - future_covariate_2
+    - future_covariate_3
+    - future_covariate_4
+    - future_covariate_5
+    - future_covariate_6
+    - future_covariate_7
+    - future_covariate_8
+    - future_covariate_9
+    - future_covariate_10
+    - future_covariate_11
+    - future_covariate_12
+    - future_covariate_13
+    - future_covariate_14
+    - future_covariate_15
+    - future_covariate_16
