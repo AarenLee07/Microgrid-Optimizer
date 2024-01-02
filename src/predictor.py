@@ -67,8 +67,8 @@ class Predictor():
                  price_buy_kws=None, price_sell_kws=None,**predictors):
 
         predictor_tmp = predictors
-        print(simple_bld_kws)
-        print(simple_pv_kws)
+        #print(simple_bld_kws)
+        #print(simple_pv_kws)
         # default dic for Simple:
         Simple={
                 "bld": Predictor_load_Simple, "bld_kws": simple_bld_kws,#{"rule": "week", "num": 4, "exp_alpha": 0.1},#"bld": Predictor_load_GT, "bld_kws": None,
@@ -77,11 +77,11 @@ class Predictor():
                 "price_buy": Predictor_tou_SDGE_DA, "price_buy_kws": None,
                 "price_sell": None, "price_sell_kws": None
             }
-        print("exp_alpha for pv:",simple_pv_kws['exp_alpha'])
+        #print("exp_alpha for pv:",simple_pv_kws['exp_alpha'])
         # if specified via Simple_dic:
         False_flag=0
         if Simple_dic!=None:
-            print("Notification of branch entry.")
+            #print("Notification of branch entry.")
             if Simple_dic['bld'] in [False,'False','FALSE','false',0,'0']:
                 print("Notification of branch entry-bld.")
                 False_flag+=1

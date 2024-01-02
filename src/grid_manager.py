@@ -302,7 +302,8 @@ class MPC_op():
         if kw["pred_model"]=="Prediction":
             kw["tstart"]=tstart_execution
             kw["tend"]=tend
-            load_XGB=XGB_dataloader(fillna=True, bld_load_mean=load_ave_exec, **kw).get_data() # load_XGB contains only load_bld and load_pv
+            folder=r'load_forecast\\'+kw["pred_method"]
+            load_XGB=XGB_dataloader(fillna=True, bld_load_mean=load_ave_exec,folder=folder, **kw).get_data() # load_XGB contains only load_bld and load_pv
             loaded_XGB=loaded_GT.copy()
             # copy from the static data directly
             for key in ["load_bld","load_pv"]:

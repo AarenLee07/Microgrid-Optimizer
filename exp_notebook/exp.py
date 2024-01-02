@@ -96,7 +96,8 @@ class MPC_ExperimentManager(ExperimentManager):
         op_params["shift"]=params.get("shift",False)
         op_params["shift_ratio"]=params.get("shift_ratio",0)
         pred_model = params.get("pred_model", "GT") 
-        print("pred_model:",pred_model)
+        pred_method=params.get("pred_method",  "XGB")
+        #print("pred_model:",pred_model)
         
         Simple_dic={
             'bld':True,
@@ -169,7 +170,7 @@ class MPC_ExperimentManager(ExperimentManager):
         month=int(params.get("month_of_year",3))
         op_params["K"]=96*month_dic[month-1]'''
         
-        print("K=",op_params["K"])
+        #print("K=",op_params["K"])
         
         mpc = MPC_op()
 
@@ -179,7 +180,7 @@ class MPC_ExperimentManager(ExperimentManager):
             tstart_execution=datetime(2019,1,1,0,0),
             tend=datetime(2019,12,31,23,59), delta=0.25,
             bld=bld, pv=pv, ev=ev, pv_to_bld=pv_to_bld, ev_to_bld=ev_to_bld, Pmax=10,
-            pred_model=pred_model)
+            pred_model=pred_model, pred_method=pred_method)
 
         '''
         # Step 2: Load historical data

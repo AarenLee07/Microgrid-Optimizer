@@ -41,7 +41,7 @@ class DataLoader():
     - rescale PV and EV load with bld
     """
 
-    def __init__(self, tstart=None, tend=None, delta=0.25,
+    def __init__(self, tstart=None, tend=None, delta=0.25, folder=None,
                 pv_to_bld=None, ev_to_bld=None, ev_rand_td=None, rand_seed=42, fillna=False, bld_load_mean=None,
                 **kwargs_load_data):
         
@@ -49,6 +49,7 @@ class DataLoader():
         self.load_pv = None
         self.ev_sessions = None
         self.data_tmp = None
+        self.folder = folder
 
         # Step 1: load data (in temporary form)
         self.load_data_tmp(**kwargs_load_data)
@@ -58,7 +59,7 @@ class DataLoader():
         self.align_time_range(tstart=tstart, tend=tend, delta=delta, 
             ev_rand_td=ev_rand_td, rand_seed=rand_seed)
 
-        print(bld_load_mean)
+        #print(bld_load_mean)
         # Step 3 (optional): rescale PV harvest and/or EV load based on bld load
         self.rescale_load(pv_to_bld=pv_to_bld, ev_to_bld=ev_to_bld, rand_seed=rand_seed, bld_load_mean=bld_load_mean)
 
@@ -224,7 +225,7 @@ class DataLoader():
         }
         return data
 
-def ev_data_loader(proj="UCSD", folder="UCSD_raw_data",
+def ev_data_loader(proj="UCSD", folder="UCSD_raw_data", pred_method=None,
                     tstart=None, tend=None, station=None, year=None,
                     delta=None, Pmax=6.6, eta=0.98,pred_model=None):
     
@@ -351,9 +352,8 @@ class UCSD_dataloader(DataLoader):
     
     def load_data_tmp(self, 
         bld=None, pv=None, ev=None, combined_fn=None,
-        folder="UCSD_raw_data", **ev_load_kw):
-        
-
+        **ev_load_kw):
+        folder="UCSD_raw_data"
         """
         two methods to load data
         1. use raw files, for which you should give the file names of
@@ -415,11 +415,12 @@ class UCSD_dataloader(DataLoader):
 # with preprocessing the same as USCD_dataloader           
 class XGB_dataloader(DataLoader):
     
-    def load_data_tmp(self, 
+    def load_data_tmp(self,
         bld=None, pv=None, ev=None, combined_fn=None,
-        folder="load_forecast\XGB", **ev_load_kw):
-        
-
+         **ev_load_kw):
+        #folder=folder
+        folder=self.folder
+        #print("folder:{}",folder)
         """
         two methods to load data
         1. use raw files, for which you should give the file names of
