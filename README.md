@@ -2,7 +2,7 @@
 
 ## About
 
-This repository provides codes for paper published on ***Energy and Buildings*** (title: _Quantifying the Impact of Building Load Forecasts on Optimizing Energy Storage Systems_, DOI: https://doi.org/10.1016/j.enbuild.2024.113913).
+This repository provides codes for paper published on ***Energy and Buildings*** (title: _Quantifying the impact of building load forecasts on optimizing energy storage systems_, DOI: https://doi.org/10.1016/j.enbuild.2024.113913).
 
 Smart microgrid energy management requires better load forecast models and better control strategies, within each cluster there are considerable research advances over the past few years. Improving the economic performances in real-world practice asks for seamlessly integration of the two parts, however, comprehensive uncertainty quantification is very limited.  
 In this research, we focus on understanding how forecast errors on building electricity load impact economic control performances under model predictive control (MPC) strategies, i.e., quantifying the value of information (VoI) for energy storage management. (The explaination of VoI please refer to the paper once being published.)
